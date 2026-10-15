@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-page-node-id="bfHU8TgkHFd5sHEc8XhNJx">
+<head data-page-node-id="NRiSmObReGFgWHiw0C5bGG">
+<meta charset="UTF-8" data-page-node-id="rrHAwmDGHTAh5QD9rIGM3p">
+<meta name="viewport" content="width=device-width, initial-scale=1" data-page-node-id="n7CIBVbALJuMJvYJbZGMqJ">
+<title>我们与 AI 的协作开发手册 · 课题 19 碑帖集字生成器</title>
+<style>
+:root{
+  --bg:#faf9f7; --card:#ffffff; --line:#e4e2dd; --line2:#d3d1c7;
+  --tx:#2c2c2a; --tx2:#5f5e5a; --tx3:#888780;
+  --p:#534ab7; --pb:#eeedfe; --b:#185fa5; --bb:#e6f1fb; --t:#0f6e56; --tb:#e1f5ee; --a:#854f0b; --ab:#faeeda;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei","Hiragino Sans GB",sans-serif;
+  font-size:14px;line-height:1.75;-webkit-font-smoothing:antialiased}
+.wrap{max-width:880px;margin:0 auto;padding:48px 24px 80px}
+header{border-bottom:1px solid var(--line);padding-bottom:24px;margin-bottom:36px}
+h1{font-size:24px;font-weight:600;margin:0 0 8px;letter-spacing:-0.01em}
+.sub{color:var(--tx2);font-size:14px;margin:0}
+.tag{display:inline-block;font-size:12px;padding:3px 10px;border-radius:20px;background:var(--pb);color:var(--p);margin-right:6px}
+h2{font-size:17px;font-weight:600;margin:44px 0 16px;padding-left:12px;border-left:3px solid var(--p)}
+h3{font-size:14px;font-weight:600;margin:24px 0 10px}
+p{margin:0 0 14px}
+.lead{color:var(--tx2);margin-bottom:20px}
+table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:13px}
+th{background:#f3f2ee;text-align:left;font-weight:600;padding:10px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid var(--line);vertical-align:top;line-height:1.65}
+tr:last-child td{border-bottom:none}
+td.k{font-weight:600;white-space:nowrap;width:1%}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 24px;margin-bottom:16px}
+.card.acc{border-left:3px solid var(--a)}
+ol,ul{margin:0 0 14px;padding-left:22px}
+li{margin-bottom:7px}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;margin-bottom:8px}
+.step{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.step .n{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;
+  background:var(--pb);color:var(--p);font-size:12px;font-weight:600;margin-right:8px}
+.step .t{font-weight:600;font-size:14px}
+.step .d{color:var(--tx2);font-size:13px;margin-top:6px;line-height:1.6}
+.chk{list-style:none;padding-left:0}
+.chk li{padding-left:26px;position:relative;margin-bottom:9px}
+.chk li:before{content:"";position:absolute;left:0;top:5px;width:14px;height:14px;border:1.5px solid var(--line2);border-radius:4px}
+.quote{background:#f3f2ee;border-radius:10px;padding:14px 18px;color:var(--tx2);font-size:13px;margin:16px 0}
+code{font-family:"SFMono-Regular",Consolas,monospace;font-size:12.5px;background:#f1efe8;padding:2px 6px;border-radius:4px}
+.pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:20px;margin:0 4px 4px 0}
+.pill.p{background:var(--pb);color:var(--p)}
+.pill.b{background:var(--bb);color:var(--b)}
+.pill.t{background:var(--tb);color:var(--t)}
+.pill.a{background:var(--ab);color:var(--a)}
+footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);color:var(--tx3);font-size:12.5px}
+</style>
+</head>
+<body data-page-node-id="Hm0F5OzprTH0AdPgc6woem">
+<div class="wrap" data-page-node-id="NJ6A4nyod2V4sjn2YadIGu">
+
+<header data-page-node-id="IkOUHR6Va1aKVJgKJ90iqZ">
+  <h1 data-page-node-id="sAM0j8AfhEDlv6HNPAgwvz">我们与 AI 的协作开发手册</h1>
+  <p class="sub" data-page-node-id="9L6Ix71uB8W6zHdTrUOyb6">移动信息化 · 课堂研讨 · 课题 19「碑帖集字生成器」　|　第 1 版　|　2026-10-15</p>
+  <p style="margin-top:12px" data-page-node-id="0vAP0e8zDQHGM7aDEs4hBx"><span class="tag" data-page-node-id="43wOy90BsqaYPS4CHAoHDO">协作流程</span><span class="tag" data-page-node-id="4MhSEEnFHFviLtiLMs3a6A">分工契约</span><span class="tag" data-page-node-id="lLcohZnZlRPYDPXMhs81iX">可发队友</span></p>
+</header>
+
+<p class="lead" data-page-node-id="tvwTl2mA0jnUIJ8rsYtG1J">这份手册回答一个问题：<strong data-page-node-id="j4t7Jn1imHWBzDsOEpeVfh">用 AI 开发一个软件，到底要走哪几步、每一步谁干什么。</strong>
+它不是技术教程，而是我们这支队伍（你们 + 长庚）的分工契约。建议小组第一次开会时一起过一遍。</p>
+
+<h2 data-page-node-id="bNFVmvgv1yijwy3VvMt8dq">一、先破一个误区</h2>
+<div class="card" data-page-node-id="m49egV3bJhRmRg40qY0paA">
+<p style="margin-bottom:10px" data-page-node-id="9B0kaLgS1xPATrpthSVI76">AI 开发 <strong data-page-node-id="M4ba3tfj3aSatptKcnF2o9">不等于</strong> 把需求丢给 AI、然后等结果。</p>
+<p style="margin-bottom:0" data-page-node-id="FCZxo1CrkdSlrw5El1zQJo">更准确的关系是：<strong data-page-node-id="E6rG3ktiyv3LaWISUmVjEE">你们是甲方 + 品控，AI 是施工队 + 技术顾问。</strong>
+AI 出力气、出速度、出技术细节；但<strong data-page-node-id="E8seFh2YmBxNkItE8ktTbZ">做什么、做到什么程度、结果对不对</strong>，这三件事只能你们拍板。
+尤其这次课题里反复强调「缺字必须报缺字」「绝不允许悄悄用其他来源的字冒充原帖」——
+这其实是在提醒：<strong data-page-node-id="ADO6oI3sDKp5le5U2sK4f9">AI 最大的风险不是做不出来，而是"编得很像"。</strong></p>
+</div>
+
+<h2 data-page-node-id="DgqBryOki5AarHGdXGpmqK">二、六个环节</h2>
+<div class="steps" data-page-node-id="4VudDyVyH8UNMzWFiw3YbY">
+  <div class="step" data-page-node-id="KNGmQng7UNQcACdz4wXF4m"><div data-page-node-id="Q0YpLnGhk1alT0TD6re59c"><span class="n" data-page-node-id="QxnnI3mL0yrZ586w4qO2rr">1</span><span class="t" data-page-node-id="hbpPeUWAPcYvjZ6Q7rrlD5">准备 Setup</span></div><div class="d" data-page-node-id="IAm0Mh3OdGv1AI1cFU601G">环境、分工、素材、评分规则，一次摆上桌</div></div>
+  <div class="step" data-page-node-id="ivA4EMD30CYEpjtm98jhsp"><div data-page-node-id="KdV2ODDJ4LWMxrBYn0JwRa"><span class="n" data-page-node-id="IXviWgpxWkj24MuvxENTsQ">2</span><span class="t" data-page-node-id="MvptmAmaqSIJ1BOgRUfLZH">定义 Define</span></div><div class="d" data-page-node-id="W3WIJv0WcDDLOLYg0FnflV">把模糊想法，写成可勾选、能验收的清单</div></div>
+  <div class="step" data-page-node-id="KRj350pJOr84a3o5IpAQ4F"><div data-page-node-id="vqlgPHocOK5iXNay3E5THx"><span class="n" data-page-node-id="nr4D1aLwhuJppHM6jpB5z6">3</span><span class="t" data-page-node-id="J00Oyy3A3rAw5kFFNrHALR">设计 Design</span></div><div class="d" data-page-node-id="msfCJ2faimpefTLVBS7RqJ">选型、数据结构、页面草图、里程碑拆分</div></div>
+  <div class="step" data-page-node-id="mutPajjHJQdB1MbEiyQzQ2"><div data-page-node-id="QTiZ8FMHhSvKk0DaHlnwMq"><span class="n" data-page-node-id="HftyKElz92LFy7oH0Wj70H">4</span><span class="t" data-page-node-id="qjs2uSRDe8s4gjT0AGeW3H">建造 Build</span></div><div class="d" data-page-node-id="1GctEu7mB4D526ZjlRO0nO">一次只做一个功能，跑通了再叠下一个</div></div>
+  <div class="step" data-page-node-id="bo4SowjHoelXiE8YiHyAo7"><div data-page-node-id="jxZM83cmRqDIFgeBLfUrAw"><span class="n" data-page-node-id="AHfsH4N72wDcOeIvjRA8OV">5</span><span class="t" data-page-node-id="rjr9YpjX4ueSkAXUhLBo5y">验证 Verify</span></div><div class="d" data-page-node-id="cuKrRkaoYP14rDcetCDCHv">报错原文回传；功能、文化、界面三查</div></div>
+  <div class="step" data-page-node-id="WNejMuMsspUl5iXPLPjyQG"><div data-page-node-id="VXqt9b0v2wjxE3ChDRgLtw"><span class="n" data-page-node-id="vGOWlsdYXDDcB0OKNcUtSN">6</span><span class="t" data-page-node-id="JFjvu6959RcRWWjGsM085S">交付 Deliver</span></div><div class="d" data-page-node-id="f4KSW42CPHlgrrxZY5QgOF">现场演示、汇报 PPT、课程论文、Prompt Log</div></div>
+</div>
+<p style="font-size:13px;color:var(--tx2)" data-page-node-id="lCvx6TV6wfcdwz5gnguh2X">1–3 是开工前，4–5 是反复循环的小轮子（做一块、验一块），6 之前往往会回炉重来。</p>
+
+<h2 data-page-node-id="2RHiYaiEqFnUOdp3Zsj5bm">三、每个环节的三方契约</h2>
+<table data-page-node-id="bOCdR0vrB1o1vO5Amg3Lc1">
+<thead data-page-node-id="3pSDPeqAkwsEuP0BUb6CJ0"><tr data-page-node-id="gSGZlqAHIrvHnrCfSX8fHe"><th data-page-node-id="sEEsfRZDe6AyD8ZIudEc4x">环节</th><th data-page-node-id="61nntcZoPkf3YmpHwmAGPE">你们给我</th><th data-page-node-id="9XYNl1yRpMX3zZjayqEdRG">长庚给你们</th><th data-page-node-id="AkLc4JkNhpt8SqZWHLf1BA">只能你们判断</th></tr></thead>
+<tbody data-page-node-id="3JfBDc9f40mEaiCraHzoYN">
+<tr data-page-node-id="mBDXOCAXoRaOXfFDUgLXTG">
+  <td class="k" data-page-node-id="vDeNWGARzkmsLBKuKXXHp9">1 准备</td>
+  <td data-page-node-id="DBVygPQPT8Tgj38gqz5mZb">组员名单与想承担的角色；每人电脑情况（系统、是否已有 VS Code / Python / Node）；汇报日期与期末 DDL；目标层次（保底 / 良好 / 优秀）</td>
+  <td data-page-node-id="jNhXT3WPiQGDaUjOiq1gnt">环境体检清单 + 一步步安装命令；项目目录骨架；3–4 人分工建议模板；从评分表反推的工作量地图</td>
+  <td data-page-node-id="QgIKn2VMNBAfSanowR7LSo">谁干什么（按兴趣和时间，不是硬分）；能投入多少时间；目标定哪一档——这一条决定后面所有工作量</td>
+</tr>
+<tr data-page-node-id="9dG6A2H6DBGFTCSFQckSxq">
+  <td class="k" data-page-node-id="RJYw2jOnmYcg1zAZoGQGSB">2 定义</td>
+  <td data-page-node-id="hAJPbJA4VXq6CK4kRHKeqf">一句话想法，越具体越好；真实使用场景（谁、在哪、怎么用）；界面草图（手画拍照、截图拼贴都行）；硬约束（哪些事绝对不能做）</td>
+  <td data-page-node-id="qCc0FQwprRs12cgGWTlrxq">分三档的需求清单：必须做 / 最好有 / 明确不做；验收标准：怎样才算做完；取舍建议与风险提示</td>
+  <td data-page-node-id="zcxlWCBAslh26MavnPLIsa">砍需求——最疼也最关键的一步；确认验收标准；把文化红线写进需求（如：缺字必须如实报缺字）</td>
+</tr>
+<tr data-page-node-id="JmKFovVdAYLafbDWjnZN33">
+  <td class="k" data-page-node-id="gFdBdEQiS5hk5ZLAnbSVl0">3 设计</td>
+  <td data-page-node-id="ASyh85VaTMaWvdRo23k9wA">确认过的需求清单；数据来源偏好；技术倾向（纯前端还是要后端）</td>
+  <td data-page-node-id="FtbuWJJJ12CICs0RuMXmlS">技术选型对比（含各自代价）；数据结构：每条字形记录有哪些字段；页面线框图；里程碑拆分</td>
+  <td data-page-node-id="zmauH0iCXS1K2yIBZdKLlg">拍板选型；确认数据字段——这是地基，后面改最贵；确认里程碑顺序</td>
+</tr>
+<tr data-page-node-id="knvphTtW3SgaEtTlCyJlYD">
+  <td class="k" data-page-node-id="eLl9RnzwzHCtffa6vPZBVf">4 建造</td>
+  <td data-page-node-id="2prOpVHYmjjIkf74Kndowr">一次只提一个功能；收到代码后立刻运行，把真实结果告诉我；报错原文——复制粘贴，不要转述</td>
+  <td data-page-node-id="hFndTKcouYMWtTghHJGHTO">可运行的增量代码；每版改了什么、已知问题有哪些；下一步建议</td>
+  <td data-page-node-id="2c5CXBv1m6YtCDDZrKxEVy">每跑通一个功能就存档一份；说「这里够好了，进下一个」，别无限打磨；发现方向不对立刻叫停</td>
+</tr>
+<tr data-page-node-id="DhcSF6k3xdLQhv8sRV1AvR">
+  <td class="k" data-page-node-id="gHd3yRfledH6hbjkbPTxls">5 验证</td>
+  <td data-page-node-id="EFHjC5T7B3joBOEfBqWWaY">出错截图 / 控制台报错原文；「这里看起来不对」的具体描述；文化质疑（这个字真的出自这个碑吗）</td>
+  <td data-page-node-id="XgKth871X90b25tsY6H31H">修复 + 原因解释（不只是改好）；自查清单与边界测试用例；性能与文化准确性复查</td>
+  <td data-page-node-id="ViN25RDAMYAZptBQlLXuFX">文化准确性——AI 最容易在这里编得像是真的；界面审美与字体排版；现场演示走一遍，卡在哪就记下来</td>
+</tr>
+<tr data-page-node-id="iY44wlzXPY5l5bHSusW9Ge">
+  <td class="k" data-page-node-id="TTQIvbDsoOErDTisgwtSgG">6 交付</td>
+  <td data-page-node-id="sdZ59RnY7VzJdTxFvcZFdR">汇报时长与想讲的技术点；各人实际贡献；≥5 条关键 prompt 的记录</td>
+  <td data-page-node-id="OGWo7xi7sD38Jr3tVikSuF">汇报 PPT 大纲与制作；技术报告骨架（6–12 页）；Prompt Log 整理成表；演示脚本与台词建议</td>
+  <td data-page-node-id="qdQrbC8CvMLMMkMbl6pjmg">谁上台、练几遍；演示必须真跑通，不录屏；所有数据标注来源与核对状态</td>
+</tr>
+</tbody>
+</table>
+
+<h2 data-page-node-id="uRg0jjME49uO8I63Btf79f">四、五条反直觉常识</h2>
+<div class="card" data-page-node-id="Sf8DgF7r6DNBfpkNx85pML">
+<ol style="margin-bottom:0" data-page-node-id="v1aRMxwueME95qWNqoQFZ1">
+<li data-page-node-id="YW7f8cLrP37iQgbGJp1Udp"><strong data-page-node-id="SBmOlZmQXHPKmPQbix1kMI">描述给得越具体，AI 做得越准。</strong>「做个集字器」能做出 10 种；「输入『江山如画』，从《九成宫》取字，竖排条幅预览，缺字弹窗报缺」——做出来就是你们要的那个。</li>
+<li data-page-node-id="PeIkWI9AqtFwDX9QbTSDCj"><strong data-page-node-id="dJN6KccgrXbzQYDNySWDHn">报错要丢原文，别转述。</strong>「它报错了」我得猜；把红字整段复制过来，一眼就能定位。转述时丢掉的那半句，往往正是病因。</li>
+<li data-page-node-id="xCNslnyqwkkz5fdLIWzHt2"><strong data-page-node-id="kSV2lSuRxxQuMdGYDL6V1e">一次只做一个功能。</strong>一口气要 5 个功能，会得到 5 个「看起来能跑」的半成品。</li>
+<li data-page-node-id="KLoOY0N5aAbMUmlsQqmD5A"><strong data-page-node-id="EmnDFlRypfiwQP9hDTAsWq">AI 会编，而且编得很像。</strong>这是本次课业最大的风险点。所有字形出处、朝代、碑名，必须人工核到原始来源，不许 AI「合理推测」。</li>
+<li data-page-node-id="bFMaNoWT2FDvTLJThFWQl3"><strong data-page-node-id="iWnVsWhys9WMbbutGceIbT">跑通了就存档。</strong>每完成一个能用的版本就复制一份。新手最大的痛不是做不出来，是改崩了回不去。</li>
+</ol>
+</div>
+
+<h2 data-page-node-id="3MJf13BNFxrLQaAa9vBIeX">五、开工前要准备的六样东西</h2>
+<div class="card" data-page-node-id="ikOZt8dFu3HxOxf3IxSzJg">
+<ul class="chk" data-page-node-id="04hL6faKRtSM9m7G0t1HIR">
+<li data-page-node-id="4v7vbFCcqryHjNkr2MZtSU"><strong data-page-node-id="T4OyDYwyXa2CkALyj6scRY">队伍</strong>：组员名单、各人想做什么、每周能投入多少时间、怎么联系</li>
+<li data-page-node-id="MEFdaaHYKTd6PAAsv0RVn4"><strong data-page-node-id="rElWqOONN38BlTd9aZuFzw">环境</strong>：每人一台能开浏览器的电脑；推荐 VS Code（编辑代码）+ Git（版本存档，可选但强烈建议）</li>
+<li data-page-node-id="SLMmqcPBEuqFahJrCPfmpD"><strong data-page-node-id="psVOlPFVcSLai9GVnpLP9B">时间线</strong>：课堂研讨汇报日期、期末论文 DDL、中间几个检查点</li>
+<li data-page-node-id="CeCjgquwqwwM0qoGYVMp8l"><strong data-page-node-id="2S0GvgdVC09dtspSaI3B69">目标档位</strong>：基础层（保底合格）/ 进阶层（良好）/ 挑战层（优秀）——三档工作量差很多，必须先定</li>
+<li data-page-node-id="PfE1OZQTz2tOXgvf5o5hFu"><strong data-page-node-id="rFjCVDyPqtD4HAJA2u8kga">素材与数据源</strong>：课题说明文件（已有）、碑帖底本的选择意向、可用数据源清单（手册附录）</li>
+<li data-page-node-id="6BwUG7kcjm3KacJCL0emz4"><strong data-page-node-id="yM02kEtFBLvyn8qt5kFidG">记录工具</strong>：一个共享文档，用来记 <strong data-page-node-id="zVrMsCWkHG3k6DVGlAvPnH">Prompt Log</strong>（课程要求 ≥5 条关键提示词迭代）与分工实绩</li>
+</ul>
+</div>
+
+<h2 data-page-node-id="jtL324s9ihjgPnAJ68mxsn">六、课题 19 速览与得分点</h2>
+<div class="card acc" data-page-node-id="ch9AxYEcG99MEEUkr0K2Mt">
+<h3 style="margin-top:0" data-page-node-id="uq6p5GBPObd6KSy8ShZ6st">任务目标（原文摘要）</h3>
+<p style="margin-bottom:10px" data-page-node-id="WBq326bDugkVmadnRgy6jL">用户输入一句话（如「江山如画」）并选择底本碑帖 → 系统从<strong data-page-node-id="KiBldCvPh64zqq8T8awQHc">已标注的字形库</strong>里取出对应单字 → 排成条幅 / 对联预览。</p>
+<p style="margin-bottom:0" data-page-node-id="KtnyVhwVy4iyw5pRAA1HDk"><strong data-page-node-id="ZlFMMT3KechKWEVB7mQRGa">硬约束：</strong>库里没有的字必须明确报「缺字」，并列出可选处理方案（换底本、留空、用同碑他字、以偏旁拼合）；每种方案在视觉与元数据上都可区分；<strong data-page-node-id="hBBBAlTL2BLsXaS3kqCZJu">绝不允许悄悄用其他来源的字冒充原帖。</strong></p>
+</div>
+<table data-page-node-id="EqpuOBP1FjfRyFjM8hgfcd">
+<thead data-page-node-id="KRwjG1GqDQBaAFSFiCZ6ua"><tr data-page-node-id="qx7zWQ72rfX23ZTXyNvB1J"><th data-page-node-id="EELaIo63eVuowlGFUZjBhu">评分维度</th><th data-page-node-id="ZNsQI54Yi2XWsqJ3GdXOGV">基础层（合格）</th><th data-page-node-id="6cQl5ft9NJf39mOdmaj2ae">进阶层（良好）</th><th data-page-node-id="0YyyabyktOT9N133kJdeSo">挑战层（优秀）</th></tr></thead>
+<tbody data-page-node-id="u1IM27m05cG9EZSAGU5Ule">
+<tr data-page-node-id="r0QZOdMRqP3toHzkQQ7LGp"><td class="k" data-page-node-id="N0BFqLS1qqe6qhymsX6Dul">数据规模</td><td data-page-node-id="yM8Or4UDlLMn3NriHU5fjh">最小样例 10–30 条</td><td data-page-node-id="6wBstMI4yj5BddcnJdLdqw">真实来源，&gt;60 条</td><td data-page-node-id="xluOKSMyMPWYsv3AuAvoJh">&gt;100 条，或有可自动化管线持续扩充</td></tr>
+<tr data-page-node-id="vK6of8R6b9GcXE2bKqZZep"><td class="k" data-page-node-id="JHYBqvGnlG30WEXjYNjqD4">数据真实性</td><td data-page-node-id="07gAnWc1FvPxtB4cYr32gI">自动爬取或人工整理</td><td data-page-node-id="hjxexfGgHgoVoZcpW0gEVe">逐条标来源与核对状态</td><td data-page-node-id="72SjR7xMJDfbWJEFZUqSVO">抓取→清洗→校核→入库全流程清晰完整</td></tr>
+<tr data-page-node-id="GA38Rn2bjKj3RRgr75NZAK"><td class="k" data-page-node-id="co0lsnFF8ID7dIa80drRT2">工程深度</td><td data-page-node-id="sP61NqV3Juv2OXrdgZT45K">纯简单前端、数据写死</td><td data-page-node-id="UJp8Zq4MWeeyBqXnThMlKV">前端功能完整 + 界面美观 + 简单算法</td><td data-page-node-id="E6zNskk28lyW5IiWES3tjC">技术创新 / 功能完整 / 界面专业美观</td></tr>
+<tr data-page-node-id="rPDteR5zFnT7fVwdwP30yG"><td class="k" data-page-node-id="KMmoG0qhUB1J7HFfjPOb8F">智能 / 算法</td><td data-page-node-id="gGvQ5vsybroVtBtgOPtgHK">规则匹配、简单渲染、有界面</td><td data-page-node-id="tBNwwebb8fUlXkEVk4rKJx">至少一项"真"技术：真图 / 真 OCR / 相似度 / 图算法 / 检索 API / 大模型 API</td><td data-page-node-id="zHfe23FUAc8jb9oogBhXBt">实现或应用某个先进 AI 算法并成功落地</td></tr>
+</tbody>
+</table>
+<div class="quote" data-page-node-id="bzMt2a1cGdOaXOq1BrDKYd">
+<strong data-page-node-id="AdsH1ny5joy317cieSaRbo">评价格式说明：</strong>达到基础层即合格；4 个维度中有 3 个达到进阶层，即可考虑评为良好；同理 3 个维度达到挑战层可考虑优秀。<br data-page-node-id="NM7QxOmMMozXIBShyhj47b">
+<strong data-page-node-id="6uXs0S6NsrePUbCg1DU8Ru">提交物：</strong>① 现场汇报 PPT + 软件作品演示　② 课程论文（技术报告，建议 6–12 页，Word &amp; PDF）　③ 可运行软件 + 说明文档 + 代码压缩包　④ 过程材料：Prompt Log（≥5 条）、迭代截图、分工说明。
+</div>
+<p style="font-size:13px;color:var(--tx2)" data-page-node-id="XII53T4eJCNXh6ao7kh71f">
+<span class="pill p" data-page-node-id="pdOEuHnQhJQbi5lvJ6YJYl">先记着</span>这三个词后面会反复出现：<strong data-page-node-id="777qyit6jDt3KPhPeW55R8">核对状态</strong>、<strong data-page-node-id="6jtv3SR5QMenRQrVtj7QqK">缺字报告</strong>、<strong data-page-node-id="FQWrjDwSEDCwD9EYPWFHpy">不允许冒充</strong>。
+它们既是评分点，也是我们这个作品最值得讲的地方——「一个诚实的集字器」本身就是一个好选题。
+</p>
+
+<h2 data-page-node-id="7MBtQppyuA2AkJFZc1jE2s">七、第一次小组会议：30 分钟拍板这 5 件事</h2>
+<div class="card" data-page-node-id="lPdLRLuDSkkUtMPBfov4q5">
+<ol style="margin-bottom:0" data-page-node-id="8Qqp4F2ljOoWlSZ2yHKir8">
+<li data-page-node-id="NyaUofv10lgN46sSXyCYyE"><strong data-page-node-id="YdDps68vAVPVdZn3tthrkp">目标档位</strong>：冲哪一档？（决定后面所有工作量）</li>
+<li data-page-node-id="dKRq4EIwFhbKFxqeZuZRIJ"><strong data-page-node-id="zkPIHwAKx4n4bVRoSGWL6q">分工</strong>：谁做需求与汇报、谁做数据与考据、谁跟我写代码、谁管文档与 Prompt Log</li>
+<li data-page-node-id="sB0BthE5Wv1kD2nMA8mQTF"><strong data-page-node-id="0CI2rXYdyHenDNHEczIBa0">底本碑帖</strong>：先定 1–2 种（决定了字形库往哪个方向建）</li>
+<li data-page-node-id="JM2TGGCnHSfB3uQGWwh6IA"><strong data-page-node-id="d6nPnXsWlTPEZniQGUwWC6">时间线</strong>：汇报日期倒推，定 3 个中间检查点</li>
+<li data-page-node-id="SvHIZQ8GyltKLOuYanyMON"><strong data-page-node-id="yNIsPXtMFf6ordaTSid8Iu">沟通方式</strong>：建个群 / 共享文档，所有 prompt 与产出都往里丢</li>
+</ol>
+</div>
+
+<h2 data-page-node-id="ODCSiIkcWAcbCs72QGgktf">八、Prompt Log（课程要求 ≥5 条）</h2>
+<table data-page-node-id="MtaisMF5UhdqmrGJ09EL5B">
+<thead data-page-node-id="xN3mTNLnNvuRy06j9ndCbY"><tr data-page-node-id="QFEKTWfGrg6m5tkp15F0ZC"><th style="width:1%" data-page-node-id="v0aShI1q3eTbMiorHluMBR">#</th><th data-page-node-id="XWXvAVdcoCGvjZ6ehrU4xB">我们如何提问</th><th data-page-node-id="vIpK3j8UXHjyX0aScaMcin">AI 给了什么</th><th data-page-node-id="IHn1HdHfqFJBwnJH18F9IH">我们如何核验 / 修订</th></tr></thead>
+<tbody data-page-node-id="HckDeCDdE9BvsHcgEAhTTd">
+<tr data-page-node-id="xqiXZiSXFXdNtpBxiMa6nF">
+  <td class="k" data-page-node-id="okmBIjeg1sohv4sf9HRjFD">1<br data-page-node-id="jv3IRx5KcCyhCCw738COgS"><span style="font-weight:400;color:var(--tx3)" data-page-node-id="6S0oNvUWPGD1K9gRpDTRPR">2026-10-15</span></td>
+  <td data-page-node-id="i4lic05bEHrAGeXbq4PgHo">给出课题说明文件，要求先不启动工程，先梳理使用 AI 开发的大致流程：需要准备什么、有几个环节、每个环节我们要提供什么、AI 会给什么、我们需要处理什么。</td>
+  <td data-page-node-id="VG9vGmilqfBikZPOsPbQvs">六环节流程图（准备 / 定义 / 设计 / 建造 / 验证 / 交付）；每环节三方契约卡片；五条反直觉常识；本手册。</td>
+  <td data-page-node-id="D5ZFjV03C8Jw3qZyhTWyI2"><em data-page-node-id="IU2eRdkXZoVMNO0Xz6yIgJ">待小组会议确认后修订</em></td>
+</tr>
+<tr data-page-node-id="h4smHV9DsahME2KxSog9VK">
+  <td class="k" data-page-node-id="ivyHMCwSfQmRYBGPRidWTP">2</td>
+  <td data-page-node-id="9txICsCwx4Rggt1AESsLfS"></td>
+  <td data-page-node-id="4HIQLdB6mrNM3gUxrmILHo"></td>
+  <td data-page-node-id="CgOYTAE3E1UyyZ7EEONK48"></td>
+</tr>
+<tr data-page-node-id="i0vCGABBu7NANmF8hqTzgW">
+  <td class="k" data-page-node-id="tX7bJ71rvLwEBAVpInUnxF">3</td>
+  <td data-page-node-id="KVYkATbVxnB8o6yWJTRz9u"></td>
+  <td data-page-node-id="6dxTbt5T9tucaoFoVuH3GZ"></td>
+  <td data-page-node-id="2LufWiEq96mQO3qmlUUNRs"></td>
+</tr>
+<tr data-page-node-id="IFrRhdsuzqko0fyEcpSJwT">
+  <td class="k" data-page-node-id="Yfm5nVG2Ab6STtssy51gQY">4</td>
+  <td data-page-node-id="X063Bx8DxH2QbBrfIpLhWC"></td>
+  <td data-page-node-id="Mn5ohrr7f1Y932xKhBuXMx"></td>
+  <td data-page-node-id="Q1lsG90Py4mTOUGeNc0ttc"></td>
+</tr>
+<tr data-page-node-id="Gvd2B72bPXq1rAk3ZIfp9G">
+  <td class="k" data-page-node-id="WEwI68BMuFlISdXrvCHQUH">5</td>
+  <td data-page-node-id="PYVdT8keBwMnrnErD04WLY"></td>
+  <td data-page-node-id="aQ0thPsiYmpgEEGAksqNRr"></td>
+  <td data-page-node-id="Dwn7LZvjRULom1D7XDcsAJ"></td>
+</tr>
+</tbody>
+</table>
+
+<h2 data-page-node-id="QIdMptLwDfVlTWDbc0Lib8">附录：课题给出的可用数据源</h2>
+<table data-page-node-id="3ToBaMWbzuII6qi449nhFr">
+<thead data-page-node-id="YofE97NlhlBZQz5ENN3myQ"><tr data-page-node-id="dDwBak3R2VYkJQHdAECWJ0"><th data-page-node-id="cmybdKLtwCiVUcMSfIVsTb">资源名称</th><th data-page-node-id="wCWQynS5Tj0n0a4OxabZlS">网址</th><th data-page-node-id="XaiuYSnPYjrCKTAIBYu6fC">主要内容</th></tr></thead>
+<tbody data-page-node-id="6nxJNOmJ1N3Fpktai1BEFZ">
+<tr data-page-node-id="uhQbvPMb6OVkJPOVxsCHxA"><td class="k" data-page-node-id="mK3GQ9yWLAzwluMTHc3HAK">中华珍宝馆</td><td data-page-node-id="jggp41pHTJJmn9zFUIpRry"><code data-page-node-id="f7AJEmZr8MRk6d7GTk0KNy">g2.ltfc.net</code></td><td data-page-node-id="UpTMncHJF145c6tE351H9I">66 万张高清书画 / 碑帖图像，检索 / 下载 / 集字 / 白描 / 拍照识画</td></tr>
+<tr data-page-node-id="xEohejJY3Nc0DEvm3RA2Fu"><td class="k" data-page-node-id="4DPU01hAWcwcrnV0mvMMFt">书格</td><td data-page-node-id="fgvCboJr6qEnoleEtgIBrL"><code data-page-node-id="xEEhs2iOANVZ2vYS87cXM0">new.shuge.org</code></td><td data-page-node-id="6yOB6MsvFwrMlOFB1bj4ty">公有领域古籍高清 PDF，无水印下载</td></tr>
+<tr data-page-node-id="8IAfOqa10H144YWg1WhDmQ"><td class="k" data-page-node-id="fts8XQM8LaVKiyxBTVMUve">维基共享资源</td><td data-page-node-id="SOi6XaXCc5oMTJcmVn4CUh"><code data-page-node-id="HpENq1MRuF43Mm8M1RHOaT">commons.wikimedia.org</code></td><td data-page-node-id="xDIYdFtsVx3rTiZUhXRxvt">文物 / 书画图像与可复用元数据</td></tr>
+<tr data-page-node-id="l3ZdKo1NNrVmdAjwWHSnUD"><td class="k" data-page-node-id="U5v0Vg7aK8HxJnPSn8zusX">故宫数字文物库</td><td data-page-node-id="XN7kL8FS67T998aGVKlxlo"><code data-page-node-id="D9xPOhNrIrwy1ouw7gB3v8">digicol.dpm.org.cn</code></td><td data-page-node-id="yj4rxWNBmbHd8XFcDdJYsJ">高精度文物图像与元数据</td></tr>
+<tr data-page-node-id="ZFWF5fsfkKq63wlzXTKiUS"><td class="k" data-page-node-id="TpQ1Z27RhIhLsdwHeCCZAE">字统网 / 汉典</td><td data-page-node-id="S8zrBKFrhtJOdzG4hZxWAc"><code data-page-node-id="UvEEpvwb29GhFpf71dUzol">zi.tools</code> / <code data-page-node-id="m8tG9IUp9vTtSAXM5t0l3N">zdic.net</code></td><td data-page-node-id="EEWE6xrMRaypyjqCCzwnq0">汉字字形、字源、异体字</td></tr>
+<tr data-page-node-id="2vYwecfRO6xa4DGIYCYtLV"><td class="k" data-page-node-id="wD27KNb96H10fB9nrZ9cME">维基文库</td><td data-page-node-id="iksVlmi95FYNx9AWDBwoIZ"><code data-page-node-id="1x1NPC0x2eR8QPTlcJds9W">zh.wikisource.org</code></td><td data-page-node-id="he4xTTnxgF8u2bxCfLrUXr">公有领域古籍全文，支持 API 抓取</td></tr>
+<tr data-page-node-id="ciTnSZ5HErRIFvCKd3vQJb"><td class="k" data-page-node-id="0wWHhpWjydvMaXW0QH7ydX">识典古籍</td><td data-page-node-id="IYXhzJm0AuqiWlIRJftMF2"><code data-page-node-id="kNcbYpDgGsn4LOSHhCBJRX">shidianguji.com</code></td><td data-page-node-id="dPWMzDTSfBi6h5i9X5pSFQ">古籍 OCR、全文检索、字典释义</td></tr>
+<tr data-page-node-id="FKdS5XaHD6vp4QgbjuT4w1"><td class="k" data-page-node-id="k9s13Rzg2V3WH99bvC6Q61">中华古籍资源库</td><td data-page-node-id="AnELf7BY1JOyp0kMHAif8E"><code data-page-node-id="AFIrIKIarggFTKFLOBMaEw">guji.nlc.cn</code></td><td data-page-node-id="SQHyurAOhsp9yFbmfUhAgR">古籍善本数字扫描件</td></tr>
+<tr data-page-node-id="qQ4GFktmNEPbWg4V9bWWGw"><td class="k" data-page-node-id="5lmBdOJcwzGb45UHABAccW">全球汉籍影像</td><td data-page-node-id="BS3EXQ3xNXN1H78HgcRaG5"><code data-page-node-id="CO4EPYvdbLpk3BJ8Sa2OWF">guji.wenxianxue.cn</code></td><td data-page-node-id="Zp5DpW8muxG1RJW4fKwr3a">汉籍影像开放集成</td></tr>
+<tr data-page-node-id="jYpPZx6eGcJsWu02RbQx7j"><td class="k" data-page-node-id="nd3zb6kWb8CXZ8EZvU3ilB">中国哲学书电子化计划</td><td data-page-node-id="7yIka6ZAFk9XkSqUQWLqXe"><code data-page-node-id="E9gQbMqzJiqQHfAvN8FUYK">ctext.org</code></td><td data-page-node-id="TCuZpngXJfNw8rFA2lsVx2">古籍全文检索、异文并行对照</td></tr>
+<tr data-page-node-id="NDeSJXRBwRFC2JbqBmXh85"><td class="k" data-page-node-id="FjPUKEKAQKjf12xmlv6aYM">搜韵网</td><td data-page-node-id="fKLIPCcmOiiuHAJoHUcp90"><code data-page-node-id="CK3AY6EpmH1XYiDC0eVRQc">sou-yun.cn</code></td><td data-page-node-id="zeYQG67YjLSgC0yIDynsQA">诗词格律、韵脚、典故</td></tr>
+</tbody>
+</table>
+<p style="font-size:13px;color:var(--tx2)" data-page-node-id="VQtDO2uTH68NUnG5i6SsMF">使用须遵守各平台条款并标注来源；商用受限素材仅用于教学演示。</p>
+
+<footer data-page-node-id="P4vFFhsVQ4cGmT4TCM44ZK">
+长庚 🌟 与白星小组 · 2026-10-15 第 1 版 · 随项目推进持续更新
+</footer>
+
+</div>
+</body>
+</html>

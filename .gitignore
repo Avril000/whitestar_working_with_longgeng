@@ -1,0 +1,26 @@
+# ---- 环境与缓存 ----
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.DS_Store
+Thumbs.db
+
+# ---- 原始素材（体积大、版权敏感，保留下载脚本即可复现）----
+data/raw/
+*.tif
+*.tiff
+*.psd
+
+# ---- 中间产物（可由脚本重新生成）----
+data/processed/
+
+# ---- 编辑器与系统 ----
+.vscode/
+.idea/
+*.swp
+
+# ---- 个人临时文件 ----
+*.tmp
+*.bak
+~$*.docx
