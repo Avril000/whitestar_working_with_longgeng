@@ -1,0 +1,72 @@
+// 本文件由 tools/build_manifest.py 自动生成，请勿手工修改。
+// 要改数据，请改 data/metadata/glyphs.json，然后重新运行本脚本。
+window.DATA = {
+  "books": {
+    "dbt": {
+      "name": "多宝塔碑",
+      "author": "颜真卿",
+      "year": "天宝十一载（752）",
+      "age": "四十四岁书",
+      "desc": "早期代表作。结字严谨，点画圆整，法度森严，是初学颜体最常临的范本。"
+    },
+    "yql": {
+      "name": "颜勤礼碑",
+      "author": "颜真卿",
+      "year": "大历十四年（779）",
+      "age": "七十一岁书",
+      "desc": "晚年代表作。雄浑宽博，气势开张，与多宝塔相隔二十七年，气象全然不同。"
+    }
+  },
+  "glyphs": [
+    {
+      "char": "江",
+      "book": "dbt",
+      "nature": "原碑拓本",
+      "edition": "宋拓本",
+      "holder": "故宫博物院藏",
+      "src_page": "第 5 页 第 2 行 第 1 字",
+      "verified": "已核对",
+      "by": "池裕斌"
+    },
+    {
+      "char": "山",
+      "book": "dbt",
+      "nature": "后世临本",
+      "edition": "清人临本",
+      "holder": "私人藏",
+      "src_page": "第 3 页",
+      "verified": "已核对",
+      "by": "姚博乔"
+    },
+    {
+      "char": "如",
+      "book": "dbt",
+      "nature": "原碑拓本",
+      "edition": "宋拓本",
+      "holder": "故宫博物院藏",
+      "src_page": "第 8 页 第 1 行 第 3 字",
+      "verified": "已核对",
+      "by": "池裕斌"
+    },
+    {
+      "char": "厚",
+      "book": "yql",
+      "nature": "原碑拓本",
+      "edition": "宋拓本",
+      "holder": "故宫博物院藏",
+      "src_page": "第 2 页 第 1 行 第 2 字",
+      "verified": "存疑",
+      "by": "李一虎"
+    },
+    {
+      "char": "德",
+      "book": "yql",
+      "nature": "原碑拓本",
+      "edition": "宋拓本",
+      "holder": "故宫博物院藏",
+      "src_page": "第 6 页",
+      "verified": "未核对",
+      "by": ""
+    }
+  ]
+};

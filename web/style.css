@@ -1,0 +1,173 @@
+/* 碑帖集字生成器 · 基础样式
+   配色：宣纸米白 + 墨黑 + 朱砂红
+   说明：现阶段字形用系统衬线字体占位，等真实单字图入库后替换为图片。 */
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #F5F1E8;
+  color: #1A1A1A;
+  font-family: "Songti SC", "SimSun", "STSong", "Source Han Serif SC", serif;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 28px;
+  border-bottom: 1px solid #E0DACB;
+}
+
+.logo { font-size: 19px; letter-spacing: 3px; }
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background 0.15s;
+}
+
+.ghost, .pick {
+  background: #FBF9F3;
+  border: 1px solid #D8D2C2;
+  color: #1A1A1A;
+  padding: 8px 16px;
+  font-size: 14px;
+}
+
+.ghost:hover, .pick:hover { background: #FFFDF7; }
+
+.primary {
+  background: #1A1A1A;
+  color: #F5F1E8;
+  border: none;
+  padding: 9px 22px;
+  font-size: 14px;
+}
+
+.primary:hover { background: #333; }
+
+main { max-width: 880px; margin: 0 auto; padding: 28px; }
+
+.row { display: flex; gap: 10px; align-items: center; }
+
+#input {
+  flex: 1;
+  padding: 12px 14px;
+  font-size: 16px;
+  font-family: inherit;
+  letter-spacing: 2px;
+  background: #FBF9F3;
+  border: 1px solid #D8D2C2;
+  border-radius: 6px;
+}
+
+.intro {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: #6B6659;
+  line-height: 1.9;
+}
+
+.stage { display: flex; justify-content: center; margin: 30px 0; }
+
+.paper {
+  background: #FBF9F3;
+  border: 1px solid #E0DACB;
+  padding: 34px 44px;
+  min-width: 190px;
+}
+
+.strip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.glyph {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 50px;
+  color: #1A1A1A;
+  cursor: default;
+}
+
+.glyph.borrowed {
+  color: #9E3D32;
+  background: #FCF2F0;
+  border: 1px dashed #9E3D32;
+}
+
+.glyph.borrowed .dot {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #9E3D32;
+}
+
+.glyph.missing {
+  color: #B4AEA0;
+  background: #FAF8F3;
+  border: 1px dashed #C9C3B5;
+  font-size: 20px;
+  letter-spacing: 2px;
+}
+
+.footbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #E0DACB;
+  padding-top: 16px;
+}
+
+.meta { font-size: 13px; color: #6B6659; }
+.meta span { margin-right: 14px; }
+
+.state.ok { color: #4A7A5A; }
+.state.warn { color: #B07A2A; }
+.state.none { color: #9A948A; }
+
+.legend {
+  margin-top: 14px;
+  font-size: 12px;
+  color: #6B6659;
+}
+
+.lg { margin-right: 18px; }
+
+.sw {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  margin-right: 6px;
+  vertical-align: -2px;
+  border: 1px solid #C9C3B5;
+}
+
+.sw.borrowed { background: #FCF2F0; border: 1px dashed #9E3D32; }
+.sw.missing { background: #FAF8F3; border: 1px dashed #C9C3B5; }
+
+.tip {
+  position: absolute;
+  display: none;
+  max-width: 280px;
+  padding: 10px 14px;
+  background: #1A1A1A;
+  color: #F5F1E8;
+  font-size: 12px;
+  line-height: 1.9;
+  border-radius: 6px;
+  white-space: pre-line;
+}
+
+.tip.show { display: block; }
