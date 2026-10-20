@@ -9,6 +9,7 @@
 """
 
 import json
+import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -23,6 +24,22 @@ def main():
 
     data = json.loads(SRC.read_text(encoding="utf-8"))
 
+    # 把单字图同步到 web/glyphs/，网页才能显示
+    glyph_dir = ROOT / "web" / "glyphs"
+    glyph_dir.mkdir(parents=True, exist_ok=True)
+    copied = 0
+    for g in data.get("glyphs", []):
+        gid = g.get("id")
+        if not gid:
+            continue
+        page = gid.split("_")[0]
+        src = ROOT / "data" / "processed" / f"glyphs_{page}" / "crop" / f"{gid}.png"
+        if src.exists():
+            dst = glyph_dir / f"{gid}.png"
+            if not dst.exists() or dst.stat().st_mtime < src.stat().st_mtime:
+                shutil.copy2(src, dst)
+                copied += 1
+
     lines = [
         "// 本文件由 tools/build_manifest.py 自动生成，请勿手工修改。",
         "// 要改数据，请改 data/metadata/glyphs.json，然后重新运行本脚本。",
@@ -36,6 +53,7 @@ def main():
         count[g.get("nature", "未知")] = count.get(g.get("nature", "未知"), 0) + 1
 
     print(f"已生成 {DST}")
+    print(f"同步单字图：{copied} 张 → web/glyphs/")
     print(f"字形记录：{len(glyphs)} 条")
     for nature, n in count.items():
         print(f"  {nature}：{n} 条")
