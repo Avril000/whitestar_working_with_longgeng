@@ -2,9 +2,10 @@
 
 它做的事（按顺序）：
     1. 把三张 csv 的填写内容回填进字形库（meta + glyphs.json）
-    2. 生成本地网页能直接读的 web/data.js，并把单字图同步过去
-    3. 报一遍演示例句的缺口（哪 12 个字齐了没）
-    4. 告诉你网页在哪，双击就能看
+    2. 把拓片单字翻墨成网页用的透明底墨字图（make_webglyphs）
+    3. 生成本地网页能直接读的 web/data.js（字形图以 base64 嵌入）
+    4. 报一遍演示例句的缺口（哪 12 个字齐了没）
+    5. 告诉你网页在哪，双击就能看
 
 用法（或双击根目录「一键_收卡片.bat」）：
     python tools/pipeline_in.py
@@ -38,12 +39,17 @@ def main():
     run("merge_cards.py")
 
     print("\n" + "=" * 56)
-    print("第二步：生成网页能读的数据（web/data.js）")
+    print("第二步：把拓片单字翻墨成网页用的透明底图")
+    print("=" * 56)
+    run("make_webglyphs.py")
+
+    print("\n" + "=" * 56)
+    print("第三步：生成网页能读的数据（web/data.js，含字形图）")
     print("=" * 56)
     run("build_manifest.py")
 
     print("\n" + "=" * 56)
-    print("第三步：看看演示例句的字凑齐了没")
+    print("第四步：看看演示例句的字凑齐了没")
     print("=" * 56)
     run("check_goals.py")
 

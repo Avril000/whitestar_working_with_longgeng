@@ -16,7 +16,7 @@
 <main data-page-node-id="W1yF9pCwH8JaneRxsjH8tr">
   <section class="panel" data-page-node-id="Lt58buv0THlxbLHks04Sgv">
     <div class="row" data-page-node-id="KdD2XFUH9l5Tf00s6TeVOu">
-      <input id="input" type="text" value="江山如画" placeholder="输入一句话，例如：江山如画" data-page-node-id="TnnkihbDirbengheL3lZ30">
+      <input id="input" type="text" value="上善若水 道法自然" placeholder="输入一句话；对联请用空格分隔上下联" data-page-node-id="TnnkihbDirbengheL3lZ30">
       <button class="pick" id="btnBook" data-page-node-id="PstMcnFaTiGnsrbPrAPo8D">多宝塔碑</button>
       <button class="pick" id="btnLayout" data-page-node-id="KDxjgt4svJtD3LAnMjnX55">条幅</button>
     </div>
@@ -26,6 +26,7 @@
   <section class="stage" data-page-node-id="hpOHIgTHkry0eaatCOYhM5">
     <div class="paper" data-page-node-id="XkIh4xm1wtC2Z7TMZsymO9">
       <div class="strip" id="strip" data-page-node-id="yNUAGBFB0jrQSoFfKrf19T"></div>
+      <div class="seal" aria-hidden="true"></div>
     </div>
   </section>
 
@@ -45,6 +46,15 @@
 </main>
 
 <div class="tip" id="tip" data-page-node-id="UM6le1sP8lPMt4aDyNH6Fa"></div>
+
+<div class="history-mask" id="historyMask"></div>
+<aside class="history-panel" id="historyPanel">
+  <div class="hhead">
+    <span>历史集字</span>
+    <button class="ghost" id="historyClose">关闭</button>
+  </div>
+  <div class="hlist" id="historyList"></div>
+</aside>
 
 <script src="data.js"></script>
 <script src="app.js"></script>

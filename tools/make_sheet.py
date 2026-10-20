@@ -43,18 +43,23 @@ def pick(row, prefix, default=""):
     return default
 
 
-def make_page(page, cols=8, cell=110):
-    card = CARD_DIR / f"卡片_{page}页.csv"
-    if not card.exists():
-        print(f"  跳过第 {page} 页：没有 {card.name}（先跑 build_cards.py）")
-        return
-
-    rows = read_rows(card)
+def render(csv_path, out_path, cols=8, cell=110, base_dir=None):
+    """把任意一张卡片 csv 画成总览图"""
+    csv_path = Path(csv_path)
+    rows = read_rows(csv_path)
     if not rows:
-        print(f"  跳过第 {page} 页：卡片是空的")
-        return
+        print(f"  跳过：{csv_path.name} 是空的")
+        return None
+    crop_root = Path(base_dir) if base_dir else PROCESSED
 
-    crop_dir = PROCESSED / f"glyphs_{page}" / "crop"
+    def crop_of(gid):
+        page = gid.split("_")[0]
+        return crop_root / f"glyphs_{page}" / "crop" / f"{gid}.png"
+
+    return _draw(rows, Path(out_path), crop_of, cols, cell)
+
+
+def _draw(rows, out, crop_of, cols, cell):
     label_h = 18
     nrows = (len(rows) + cols - 1) // cols
     W, H = cols * cell, nrows * (cell + label_h) + 8
@@ -74,31 +79,49 @@ def make_page(page, cols=8, cell=110):
         img_rel = pick(row, "图片文件")
         gid = Path(img_rel).stem if img_rel else ""
         manual = pick(row, "原编号") == "手工"
+        guess = pick(row, "字")
 
         draw.rectangle([x, y, x + cell - 1, y + label_h - 1],
                        fill=(252, 236, 232) if manual else (232, 230, 222))
-        draw.text((x + 5, y + 2), f"{no}{' 手' if manual else ''}",
+        label = f"{no}{' 手' if manual else ''}{' ' + guess if guess else ''}"
+        draw.text((x + 5, y + 2), label,
                   fill=(150, 40, 30) if manual else (40, 40, 40), font=font)
 
-        p = crop_dir / f"{gid}.png"
-        if p.exists():
+        p = crop_of(gid) if gid else None
+        if p is not None and p.exists():
             g = Image.open(p).convert("RGB")
             g.thumbnail((cell - 10, cell - 10))
-            sheet.paste(g, (x + (cell - g.width) // 2,
-                            y + label_h + (cell - g.height) // 2))
+            sheet.paste(g, (x + (cell - g.width) // 2, y + label_h + (cell - g.height) // 2))
         else:
             missing += 1
             draw.text((x + 12, y + label_h + 40), "缺图", fill=(200, 60, 60), font=font)
 
-        draw.rectangle([x, y, x + cell - 1, y + label_h + cell - 1],
-                       outline=(206, 200, 188))
+        draw.rectangle([x, y, x + cell - 1, y + label_h + cell - 1], outline=(206, 200, 188))
+
+    out.parent.mkdir(parents=True, exist_ok=True)
+    sheet.save(out)
+    msg = f"  {out.name}：{len(rows)} 格"
+    if missing:
+        msg += f"（{missing} 格缺图）"
+    print(msg)
+    return out
+
+
+def make_page(page, cols=8, cell=110):
+    card = CARD_DIR / f"卡片_{page}页.csv"
+    if not card.exists():
+        print(f"  跳过第 {page} 页：没有 {card.name}（先跑 build_cards.py）")
+        return
+
+    rows = read_rows(card)
+    if not rows:
+        print(f"  跳过第 {page} 页：卡片是空的")
+        return
 
     out = PROCESSED / f"glyphs_{page}" / "card_sheet.png"
-    sheet.save(out)
-    msg = f"  第 {page} 页：{len(rows)} 格 → {out}"
-    if missing:
-        msg += f"  （{missing} 格找不到图）"
-    print(msg)
+    crop_dir = PROCESSED / f"glyphs_{page}" / "crop"
+    _draw(rows, out, lambda gid: crop_dir / f"{gid}.png", cols, cell)
+    print(f"    → {out}")
 
 
 def main():

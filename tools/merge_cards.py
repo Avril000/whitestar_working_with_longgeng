@@ -144,7 +144,9 @@ def main():
             for rec in data["glyphs"]:
                 if not rec.get("char") or rec.get("status") == "rejected":
                     continue
-                gid = rec["id"]
+                gid = rec.get("id")
+                if not gid:
+                    continue          # 没有 id 的脏数据跳过，别混进字形库
                 book_name = rec.get("book", "多宝塔碑")
                 bk = BOOK_KEY.get(book_name, "dbt")
                 lib["books"].setdefault(bk, {"name": book_name, "author": "颜真卿"})

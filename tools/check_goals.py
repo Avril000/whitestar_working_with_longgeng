@@ -16,13 +16,29 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PROCESSED = ROOT / "data" / "processed"
 GOALS = ROOT / "data" / "goals.json"
+TEXT = ROOT / "data" / "metadata" / "多宝塔碑_释文.txt"
+
+PER_SHOT = 200   # 一张滚动截图大约能切多少字（20 行 × 10 列）
 
 
 def load_goals():
     if not GOALS.exists():
-        return []
+        return [], {}
     data = json.loads(GOALS.read_text(encoding="utf-8"))
-    return data.get("sentences", [])
+    return data.get("sentences", []), data.get("variants", {})
+
+
+def load_text():
+    """读碑文释文；没有就返回空串（那就只查库、不查碑文）"""
+    if not TEXT.exists():
+        return ""
+    body = []
+    for line in TEXT.read_text(encoding="utf-8").splitlines():
+        s = line.strip()
+        if not s or s.startswith("#"):
+            continue
+        body.append("".join(s.split()))
+    return "".join(body)
 
 
 def scan_library():
@@ -49,7 +65,7 @@ def scan_library():
 
 
 def main():
-    sentences = load_goals()
+    sentences, variants = load_goals()
     if not sentences:
         print("data/goals.json 里还没定例句，先定句子再查。")
         return
@@ -94,6 +110,39 @@ def main():
 
     total = sum(len(v) for v in lib.values())
     print(f"\n字形库当前共 {total} 个字块（去重后 {len(lib)} 个不同的字）")
+
+    # ---- 碑文里有吗？在第几字？要截第几张图？----
+    body = load_text()
+    if not body:
+        print("\n（没有释文文件，跳过碑文查字。把释文放进"
+              " data/metadata/多宝塔碑_释文.txt 就能查。）")
+        return
+
+    print(f"\n{'=' * 56}\n碑文核查（释文 {len(body)} 字）")
+    print("=" * 56)
+    print(f"{'字':<4}{'碑文写法':<8}{'第几字':<10}{'第几张截图':<12}{'库里有了吗'}")
+    for ch in chars:
+        forms = variants.get(ch, [ch])
+        found = None
+        for f in forms:
+            pos = [i + 1 for i, c in enumerate(body) if c == f]
+            if pos:
+                found = (f, pos)
+                break
+        if not found:
+            print(f"{ch:<5}{'—':<9}{'碑中没有':<11}{'—':<13}★ 必须换字或借字")
+            continue
+        f, pos = found
+        shots = sorted(set((p - 1) // PER_SHOT + 1 for p in pos))
+        got = "✅ 已有" if lib.get(ch) else "❌ 还没切到"
+        print(f"{ch:<5}{f:<9}{str(pos[:4]) + ('…' if len(pos) > 4 else ''):<11}"
+              f"第{str(shots)}张{'':<4}{got}")
+
+    miss_in_text = [c for c in chars
+                    if not any(c2 in body for c2 in variants.get(c, [c]))]
+    if miss_in_text:
+        print(f"\n⚠️ 碑文里根本没有这几个字：{' '.join(miss_in_text)}")
+        print("   这三句没法纯用《多宝塔碑》集出来，得换句子、或者从《颜勤礼碑》借字。")
 
 
 if __name__ == "__main__":

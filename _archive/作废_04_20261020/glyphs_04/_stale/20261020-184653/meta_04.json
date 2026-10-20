@@ -1,0 +1,1014 @@
+{
+  "image": "04.png",
+  "threshold": 130,
+  "glyphs": [
+    {
+      "id": "04_r1_g01",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 1,
+      "bbox": [
+        0,
+        0,
+        2158,
+        868
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": "疑似粘连了两个字"
+    },
+    {
+      "id": "04_r1_g02",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 2,
+      "bbox": [
+        0,
+        32,
+        2158,
+        77
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": "疑似过小，可能是残笔或噪点"
+    },
+    {
+      "id": "04_r1_g03",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 3,
+      "bbox": [
+        0,
+        32,
+        2158,
+        96
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": "疑似过小，可能是残笔或噪点"
+    },
+    {
+      "id": "04_r1_g04",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 4,
+      "bbox": [
+        0,
+        31,
+        2158,
+        135
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g05",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 5,
+      "bbox": [
+        0,
+        26,
+        2158,
+        228
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g06",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 6,
+      "bbox": [
+        0,
+        25,
+        2158,
+        237
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g07",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 7,
+      "bbox": [
+        0,
+        34,
+        2158,
+        123
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g08",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 8,
+      "bbox": [
+        0,
+        38,
+        2158,
+        65
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": "疑似过小，可能是残笔或噪点"
+    },
+    {
+      "id": "04_r1_g09",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 9,
+      "bbox": [
+        0,
+        32,
+        2158,
+        222
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g10",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 10,
+      "bbox": [
+        0,
+        34,
+        2158,
+        223
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g11",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 11,
+      "bbox": [
+        0,
+        39,
+        2158,
+        207
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g12",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 12,
+      "bbox": [
+        0,
+        50,
+        2158,
+        92
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": "疑似过小，可能是残笔或噪点"
+    },
+    {
+      "id": "04_r1_g13",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 13,
+      "bbox": [
+        0,
+        63,
+        2158,
+        123
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": "疑似过小，可能是残笔或噪点"
+    },
+    {
+      "id": "04_r1_g14",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 14,
+      "bbox": [
+        0,
+        69,
+        2158,
+        155
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g15",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 15,
+      "bbox": [
+        0,
+        71,
+        2158,
+        224
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g16",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 16,
+      "bbox": [
+        0,
+        74,
+        2158,
+        227
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g17",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 17,
+      "bbox": [
+        0,
+        75,
+        2158,
+        227
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g18",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 18,
+      "bbox": [
+        0,
+        79,
+        2158,
+        205
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g19",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 19,
+      "bbox": [
+        0,
+        81,
+        2158,
+        225
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g20",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 20,
+      "bbox": [
+        0,
+        98,
+        2158,
+        221
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g21",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 21,
+      "bbox": [
+        0,
+        148,
+        2158,
+        213
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": "疑似过小，可能是残笔或噪点"
+    },
+    {
+      "id": "04_r1_g22",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 22,
+      "bbox": [
+        0,
+        157,
+        2158,
+        200
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": "疑似过小，可能是残笔或噪点"
+    },
+    {
+      "id": "04_r1_g23",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 23,
+      "bbox": [
+        0,
+        304,
+        2158,
+        515
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g24",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 24,
+      "bbox": [
+        0,
+        307,
+        2158,
+        510
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g25",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 25,
+      "bbox": [
+        0,
+        316,
+        2158,
+        403
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g26",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 26,
+      "bbox": [
+        0,
+        310,
+        2158,
+        508
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g27",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 27,
+      "bbox": [
+        0,
+        311,
+        2158,
+        512
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g28",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 28,
+      "bbox": [
+        0,
+        315,
+        2158,
+        502
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g29",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 29,
+      "bbox": [
+        0,
+        316,
+        2158,
+        508
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g30",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 30,
+      "bbox": [
+        0,
+        322,
+        2158,
+        465
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g31",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 31,
+      "bbox": [
+        0,
+        329,
+        2158,
+        392
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": "疑似过小，可能是残笔或噪点"
+    },
+    {
+      "id": "04_r1_g32",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 32,
+      "bbox": [
+        0,
+        331,
+        2158,
+        399
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": "疑似过小，可能是残笔或噪点"
+    },
+    {
+      "id": "04_r1_g33",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 33,
+      "bbox": [
+        0,
+        329,
+        2158,
+        446
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g34",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 34,
+      "bbox": [
+        0,
+        330,
+        2158,
+        488
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g35",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 35,
+      "bbox": [
+        0,
+        346,
+        2158,
+        451
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g36",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 36,
+      "bbox": [
+        0,
+        376,
+        2158,
+        504
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g37",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 37,
+      "bbox": [
+        0,
+        387,
+        2158,
+        492
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g38",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 38,
+      "bbox": [
+        0,
+        425,
+        2158,
+        493
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": "疑似过小，可能是残笔或噪点"
+    },
+    {
+      "id": "04_r1_g39",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 39,
+      "bbox": [
+        0,
+        438,
+        2158,
+        490
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": "疑似过小，可能是残笔或噪点"
+    },
+    {
+      "id": "04_r1_g40",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 40,
+      "bbox": [
+        0,
+        457,
+        2158,
+        499
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": "疑似过小，可能是残笔或噪点"
+    },
+    {
+      "id": "04_r1_g41",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 41,
+      "bbox": [
+        0,
+        587,
+        2158,
+        801
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g42",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 42,
+      "bbox": [
+        0,
+        592,
+        2158,
+        737
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g43",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 43,
+      "bbox": [
+        0,
+        590,
+        2158,
+        790
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g44",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 44,
+      "bbox": [
+        0,
+        589,
+        2158,
+        795
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g45",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 45,
+      "bbox": [
+        0,
+        594,
+        2158,
+        756
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g46",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 46,
+      "bbox": [
+        0,
+        591,
+        2158,
+        797
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g47",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 47,
+      "bbox": [
+        0,
+        600,
+        2158,
+        671
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": "疑似过小，可能是残笔或噪点"
+    },
+    {
+      "id": "04_r1_g48",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 48,
+      "bbox": [
+        0,
+        597,
+        2158,
+        796
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g49",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 49,
+      "bbox": [
+        0,
+        600,
+        2158,
+        797
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g50",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 50,
+      "bbox": [
+        0,
+        602,
+        2158,
+        789
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g51",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 51,
+      "bbox": [
+        0,
+        611,
+        2158,
+        773
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g52",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 52,
+      "bbox": [
+        0,
+        612,
+        2158,
+        775
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g53",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 53,
+      "bbox": [
+        0,
+        629,
+        2158,
+        710
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g54",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 54,
+      "bbox": [
+        0,
+        644,
+        2158,
+        791
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    },
+    {
+      "id": "04_r1_g55",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 55,
+      "bbox": [
+        0,
+        682,
+        2158,
+        747
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": "疑似过小，可能是残笔或噪点"
+    },
+    {
+      "id": "04_r1_g56",
+      "char": "",
+      "ai_guess": "",
+      "page": "04.png",
+      "col_from_right": 1,
+      "index_in_col": 56,
+      "bbox": [
+        0,
+        711,
+        2158,
+        794
+      ],
+      "nature": "原碑拓本",
+      "verified": "未核对",
+      "verified_by": "",
+      "note": ""
+    }
+  ]
+}

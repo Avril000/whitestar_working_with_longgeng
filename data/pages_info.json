@@ -9,7 +9,9 @@
     "book": "多宝塔碑",
     "edition": "原碑",
     "holder": "西安碑林博物馆藏",
-    "nature": "原碑拓本"
+    "nature": "原碑拓本",
+    "frozen": true,
+    "note": "整幅碑文切出，需逐个认字；单字临摹已带标注覆盖同样的字 → 2026-10-20 白星同意暂时冻结"
   },
   "02": {
     "image_no": "33",
@@ -17,7 +19,9 @@
     "book": "多宝塔碑",
     "edition": "原碑",
     "holder": "西安碑林博物馆藏",
-    "nature": "原碑拓本"
+    "nature": "原碑拓本",
+    "frozen": true,
+    "note": "整幅碑文切出，需逐个认字；单字临摹已带标注覆盖同样的字 → 2026-10-20 白星同意暂时冻结"
   },
   "03": {
     "image_no": "32",
@@ -25,6 +29,71 @@
     "book": "多宝塔碑",
     "edition": "原碑",
     "holder": "西安碑林博物馆藏",
-    "nature": "原碑拓本"
-  }
+    "nature": "原碑拓本",
+    "frozen": true,
+    "note": "整幅碑文切出，需逐个认字；单字临摹已带标注覆盖同样的字 → 2026-10-20 白星同意暂时冻结"
+  },
+  "_切字模式": "mode=grid 用 crop_grid.py（字帖网格，一格一字）；mode 缺省或 column 用 crop_glyphs.py（整幅碑文竖排）。按页在 pages_info.json 里标。",
+  "05": {
+    "image_no": "",
+    "url": "https://g2.ltfc.net/view/SUFA/67dd2ba37e99be20651df6c6",
+    "book": "多宝塔碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "start": 1,
+    "note": "滚动截图长图 2158x6011，20行x10列=200字，从头开始（碑文第1字起）"
+  },
+  "_长图建议": "单字临摹页：一次截 15~25 行（图高 6000~9000px，约 150~250 字）最划算；相邻两张重叠约 1 行，边界行切坏也不丢字。别超过 25000px 高。",
+  "06": {
+    "image_no": "",
+    "url": "https://g2.ltfc.net/view/SUFA/67dd2ba37e99be20651df6c6",
+    "book": "多宝塔碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "start": 1,
+    "note": "滚动截图长图，06页"
+  },
+  "07": {
+    "image_no": "",
+    "url": "https://g2.ltfc.net/view/SUFA/67dd2ba37e99be20651df6c6",
+    "book": "多宝塔碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "start": 1,
+    "note": "滚动截图长图，07页"
+  },
+  "08": {
+    "image_no": "",
+    "url": "https://g2.ltfc.net/view/SUFA/67dd2ba37e99be20651df6c6",
+    "book": "多宝塔碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "start": 1,
+    "note": "滚动截图长图，08页"
+  },
+  "09": {
+    "image_no": "",
+    "url": "https://g2.ltfc.net/view/SUFA/67dd2ba37e99be20651df6c6",
+    "book": "多宝塔碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "start": 1,
+    "note": "滚动截图长图，09页"
+  },
+  "_冻结": "frozen:true 的页不进卡片、不分包。想恢复就把它改成 false。"
 }

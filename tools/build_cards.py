@@ -27,6 +27,8 @@ PROCESSED = ROOT / "data" / "processed"
 PAGES_INFO = ROOT / "data" / "pages_info.json"
 OUT_DIR = ROOT / "data" / "cards"
 
+PAGES_INFO_JSON = {}
+
 HEADER = [
     "序号", "原编号",
     "字（必填）", "出处位置（必填：第几行第几列）", "核对人（必填）", "备注（选填）",
@@ -37,6 +39,8 @@ HEADER = [
 def collect():
     """收集所有保留下来的字块，按 页 → 列（右起）→ 序 排序"""
     rows = []
+    PAGES_INFO_JSON.update(
+        json.loads(PAGES_INFO.read_text(encoding="utf-8")) if PAGES_INFO.exists() else {})
     for gdir in sorted(PROCESSED.glob("glyphs_*")):
         mfiles = list(gdir.glob("meta_*.json"))
         if not mfiles:
@@ -45,13 +49,20 @@ def collect():
         page = mf.stem.replace("meta_", "")
         data = json.loads(mf.read_text(encoding="utf-8"))
 
+        # 冻结的页（例如整幅碑文那批，先不做）整页跳过
+        if (PAGES_INFO_JSON.get(page) or {}).get("frozen"):
+            print(f"  第 {page} 页已冻结，跳过（改 pages_info.json 的 frozen 可恢复）")
+            continue
+
         known = set()
         for rec in data["glyphs"]:
             if rec.get("status") == "rejected":
                 continue
             known.add(rec["id"])
-            if rec.get("char"):
-                continue  # 已经核过的不再进卡片
+            # 只有"人工已经表态"才算做完：已核对、或明确标了存疑。
+            # 光是有字（比如释文预填的）不算——那正等着人去核对呢。
+            if rec.get("verified") in ("已核对", "存疑"):
+                continue
             rows.append((page, rec["col_from_right"], rec["index_in_col"], rec["id"], rec))
 
         # 手工补充块：crop 目录里有、但 meta 里没有的（白星手工拆的字）
@@ -84,7 +95,22 @@ def collect():
                 print(f"  第 {page} 页登记手工块 {len(new_manual)} 个：{', '.join(new_manual)}")
 
     rows.sort(key=lambda x: (x[0], x[1], x[2], x[3]))
-    return rows
+
+    # 相邻截图有重叠时，同一个"碑文第 N 字"会被切到两次。
+    # 字块留在磁盘上（多一个样本没坏处），但不重复进卡片——不然组员要白核一遍。
+    seen, deduped, dup = set(), [], 0
+    for row in rows:
+        n = row[4].get("order_in_text")
+        if n is not None:
+            if n in seen:
+                dup += 1
+                continue
+            seen.add(n)
+        deduped.append(row)
+    if dup:
+        print(f"  跳过重复字块 {dup} 个（相邻截图重叠造成的，同一个碑文字切了两次）")
+
+    return deduped
 
 
 def main():
@@ -116,10 +142,17 @@ def main():
             w.writerow(HEADER)
             for i, (pg, col, idx, gid, rec) in enumerate(items, 1):
                 manual = rec.get("note") == "手工补充块"
+                # 长庚预填的字（读自珍宝馆标注）直接写进"字"列，
+                # 组员只需核对；备注里说明来源，防止被当成已确认。
+                guess = (rec.get("ai_guess") or "").strip()
+                note = rec.get("note") or ""
+                if guess and not rec.get("char") and "请核对" not in note:
+                    note = (note + "；" if note else "") + "长庚预填，请核对"
                 w.writerow([
                     f"{i:03d}",
                     "手工" if manual else gid,
-                    "", "", "", "",
+                    rec.get("char") or guess,
+                    rec.get("src_page") or "", "", note,
                     pi.get("image_no", ""),
                     page + ".png",
                     pi.get("url", ""),

@@ -20,6 +20,7 @@
 
 import argparse
 import datetime as dt
+import json
 import shutil
 import subprocess
 import sys
@@ -92,6 +93,16 @@ def build_pack(pages, with_crops=True):
     if guide.exists():
         shutil.copy2(guide, pkg / guide.name)
 
+    # 单字图体积太大就自动不带：微信传不动的包等于没做
+    if with_crops:
+        total = sum(p.stat().st_size
+                    for pg in pages
+                    for p in (PROCESSED / f"glyphs_{pg}" / "crop").glob("*.png"))
+        if total > 40 * 1024 * 1024:
+            with_crops = False
+            print(f"  单字图共 {total / 1024 / 1024:.0f} MB，超过 40 MB，"
+                  f"包里就不带了（总览图足够核对；需要单图另行拷贝）")
+
     for page in pages:
         csvf = CARDS / f"卡片_{page}页.csv"
         if csvf.exists():
@@ -142,17 +153,35 @@ def main():
         print("[停] data/processed/ 里没有 01.png 这样的页图。")
         return
 
+    info = json.loads((ROOT / "data" / "pages_info.json").read_text(encoding="utf-8")) \
+        if (ROOT / "data" / "pages_info.json").exists() else {}
+
+    # 冻结的页整页跳过：不切、不出卡片、不出图、不进包
+    frozen = [p for p in pages if (info.get(p) or {}).get("frozen")]
+    pages = [p for p in pages if p not in frozen]
+    if frozen:
+        print(f"冻结中（整页跳过）：{', '.join(frozen)}")
+    if not pages:
+        print("没有要处理的页。")
+        return
+
     print(f"要处理的页：{', '.join(pages)}\n")
     done = []
     for page in pages:
         n = existing_blocks(page)
-        print(f"—— 第 {page} 页 " + "-" * 40)
+        # 按页选切字器：grid = 字帖网格（一格一字），其他 = 整幅碑文竖排
+        mode = (info.get(page) or {}).get("mode", "column")
+        order = (info.get(page) or {}).get("order", "row")
+        print(f"—— 第 {page} 页 [{mode} 模式] " + "-" * 28)
         if n and not args.force:
             print(f"  已有 {n} 个字块，跳过切字（想重切加 --force，或双击「强制重切.bat」）")
         else:
             if n:
                 archive_old(page)
-            run("crop_glyphs.py", PROCESSED / f"{page}.png")
+            if mode == "grid":
+                run("crop_grid.py", PROCESSED / f"{page}.png", "--order", order)
+            else:
+                run("crop_glyphs.py", PROCESSED / f"{page}.png")
         done.append(page)
 
     print()

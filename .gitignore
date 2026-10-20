@@ -15,6 +15,10 @@ data/raw/
 # ---- 中间产物（可由脚本重新生成）----
 data/processed/
 
+# 网页用的透明底墨字图：由 make_webglyphs.py 从 data/processed 生成，
+# 且已经以 base64 嵌进 web/data.js，网页运行并不需要它 —— 别进 git
+web/glyphs/
+
 # ---- 打包发给组员的临时包 ----
 dist/
 
