@@ -95,5 +95,60 @@
     "start": 1,
     "note": "滚动截图长图，09页"
   },
-  "_冻结": "frozen:true 的页不进卡片、不分包。想恢复就把它改成 false。"
+  "_冻结": "frozen:true 的页不进卡片、不分包。想恢复就把它改成 false。",
+  "10": {
+    "image_no": "",
+    "url": "https://g2.ltfc.net/view/SUFA/67dd2ba37e99be20651df6c6",
+    "book": "多宝塔碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "note": "滚动截图长图，10页（2026-10-21 白星提供）"
+  },
+  "11": {
+    "image_no": "",
+    "url": "https://g2.ltfc.net/view/SUFA/67dd2ba37e99be20651df6c6",
+    "book": "多宝塔碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "note": "滚动截图长图，11页（2026-10-21 白星提供）"
+  },
+  "12": {
+    "image_no": "",
+    "url": "https://g2.ltfc.net/view/SUFA/67dd2ba37e99be20651df6c6",
+    "book": "多宝塔碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "note": "滚动截图长图，12页（2026-10-21 白星提供）"
+  },
+  "13": {
+    "image_no": "",
+    "url": "https://g2.ltfc.net/view/SUFA/67dd2ba37e99be20651df6c6",
+    "book": "多宝塔碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "note": "滚动截图长图，13页（2026-10-21 白星提供）"
+  },
+  "14": {
+    "image_no": "",
+    "url": "https://g2.ltfc.net/view/SUFA/67dd2ba37e99be20651df6c6",
+    "book": "多宝塔碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "note": "滚动截图长图，14页（2026-10-21 白星提供）"
+  }
 }

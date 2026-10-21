@@ -175,6 +175,13 @@ main { max-width: 880px; margin: 0 auto; padding: 28px; }
   font-size: 20px;
 }
 
+/* 同字同形：本句里同一个写法被用了两次以上（书法忌讳，要避复） */
+.glyph.dup {
+  background: #FDF6F4;
+  outline: 1px dashed #C0796B;
+  outline-offset: -1px;
+}
+
 /* 缺字格下方显示输入的原字 */
 .glyph.missing .mini {
   position: absolute;
@@ -186,6 +193,179 @@ main { max-width: 880px; margin: 0 auto; padding: 28px; }
   letter-spacing: 0;
   color: #C0BAAB;
 }
+
+/* ---------- 多版本角标 ----------
+   挂在字格右下角：黄=用的是默认版本（还没挑），绿=手动挑过
+   角标里写的是这个字在碑里一共有几种写法 */
+.glyph .vdot {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: #C89B3C;
+  color: #FFFDF7;
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 0 0 1.5px rgba(251, 249, 243, 0.9);
+  transition: transform 0.12s, background 0.12s;
+}
+
+.glyph .vdot:hover { transform: scale(1.2); }
+
+/* 挑过了但还没拍板：黄点外面多一圈浅黄晕 */
+.glyph .vdot.tentative {
+  box-shadow: 0 0 0 1.5px rgba(251, 249, 243, 0.9), 0 0 0 3px rgba(200, 155, 60, 0.4);
+}
+
+/* 拍板了 */
+.glyph .vdot.picked { background: #4A7A5A; }
+
+/* ---------- 版本选择区 ---------- */
+
+.versions {
+  display: none;
+  margin: 4px 0 24px;
+  padding: 16px 18px;
+  background: #FBF9F3;
+  border: 1px solid #E0DACB;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(90, 80, 60, 0.06);
+}
+
+.versions.open {
+  display: block;
+  animation: vfade 0.18s ease;
+}
+
+@keyframes vfade {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+.vhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+  letter-spacing: 1px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #EAE5D6;
+}
+
+.vact { display: flex; gap: 8px; flex-shrink: 0; }
+.vact .ghost { padding: 5px 12px; font-size: 13px; }
+
+.vgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(86px, 1fr));
+  gap: 10px;
+  padding: 14px 0 4px;
+  max-height: 340px;
+  overflow-y: auto;
+}
+
+.vitem {
+  position: relative;
+  padding: 6px 4px 38px;
+  border: 1px solid #EAE5D6;
+  border-radius: 6px;
+  background: #FFFDF7;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.vitem:hover { border-color: #C89B3C; background: #FFFBF0; }
+
+.vitem.on {
+  border-color: #4A7A5A;
+  background: #F4F8F4;
+  box-shadow: 0 0 0 2px rgba(74, 122, 90, 0.18);
+}
+
+.vitem img {
+  width: 100%;
+  height: 58px;
+  object-fit: contain;
+  pointer-events: none;
+}
+
+.vcap {
+  position: absolute;
+  left: 5px;
+  bottom: 21px;
+  font-size: 10px;
+  color: #4A7A5A;
+}
+
+.vitem:not(.on) .vcap { color: #9A948A; }
+
+.vsrc {
+  position: absolute;
+  right: 5px;
+  bottom: 21px;
+  font-size: 10px;
+  color: #B4AEA0;
+}
+
+/* 避复提示：这个写法在本句别处还用了几处 */
+.vused {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 5px;
+  font-size: 10px;
+  text-align: center;
+  color: #B4AEA0;
+  letter-spacing: 0;
+}
+
+/* 撞了：朱砂色提醒，鼠标停上去能看见撞在第几个字 */
+.vused.dup {
+  color: #9E3D32;
+  font-weight: bold;
+}
+
+/* 按钮行：【选好了】确认，【再想想】留着改动先不拍板 */
+.vfoot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid #EAE5D6;
+}
+
+.vfoot .primary, .vfoot .ghost {
+  padding: 8px 22px;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.vfoot .ghost { color: #6B6659; }
+
+.vfoot-note {
+  font-size: 12px;
+  color: #9A948A;
+  line-height: 1.6;
+  margin-left: 2px;
+}
+
+.vhint {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 1.8;
+  color: #8A8474;
+}
+
+.vhint b { color: #6B6659; font-weight: normal; }
+.vhint b.warn { color: #9E3D32; }
 
 .footbar {
   display: flex;
@@ -221,6 +401,17 @@ main { max-width: 880px; margin: 0 auto; padding: 28px; }
 
 .sw.borrowed { background: #FCF2F0; border: 1px dashed #9E3D32; }
 .sw.missing { background: #FAF8F3; border: 1px dashed #C9C3B5; }
+.sw.dup { background: #FDF6F4; border: 1px dashed #C0796B; }
+
+/* 图例里的小圆点：黄=没挑、黄带晕=挑了没拍板、绿=已拍板 */
+.sw.vdot-y, .sw.vdot-g, .sw.vdot-t {
+  border: none;
+  border-radius: 50%;
+  width: 12px;
+}
+.sw.vdot-y { background: #C89B3C; }
+.sw.vdot-g { background: #4A7A5A; }
+.sw.vdot-t { background: #C89B3C; box-shadow: 0 0 0 2px rgba(200, 155, 60, 0.4); }
 
 .tip {
   position: absolute;

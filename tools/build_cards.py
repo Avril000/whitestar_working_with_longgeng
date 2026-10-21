@@ -39,6 +39,7 @@ HEADER = [
 def collect():
     """收集所有保留下来的字块，按 页 → 列（右起）→ 序 排序"""
     rows = []
+    done_seen = set()   # 已核对字块的碑文字号（防重叠字漏拦，见 collect 尾部去重）
     PAGES_INFO_JSON.update(
         json.loads(PAGES_INFO.read_text(encoding="utf-8")) if PAGES_INFO.exists() else {})
     for gdir in sorted(PROCESSED.glob("glyphs_*")):
@@ -59,9 +60,12 @@ def collect():
             if rec.get("status") == "rejected":
                 continue
             known.add(rec["id"])
-            # 只有"人工已经表态"才算做完：已核对、或明确标了存疑。
-            # 光是有字（比如释文预填的）不算——那正等着人去核对呢。
+            # 已核对/存疑的块不出卡片，但它的碑文字号仍要登记进 seen——
+            # 否则相邻截图重叠的同一批字（另一页上还没核对的副本）会漏拦，混进卡片
             if rec.get("verified") in ("已核对", "存疑"):
+                n = rec.get("order_in_text")
+                if n is not None:
+                    done_seen.add(n)
                 continue
             rows.append((page, rec["col_from_right"], rec["index_in_col"], rec["id"], rec))
 
@@ -98,7 +102,7 @@ def collect():
 
     # 相邻截图有重叠时，同一个"碑文第 N 字"会被切到两次。
     # 字块留在磁盘上（多一个样本没坏处），但不重复进卡片——不然组员要白核一遍。
-    seen, deduped, dup = set(), [], 0
+    seen, deduped, dup = set(done_seen), [], 0
     for row in rows:
         n = row[4].get("order_in_text")
         if n is not None:

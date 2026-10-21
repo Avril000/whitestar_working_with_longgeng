@@ -30,6 +30,26 @@
     </div>
   </section>
 
+  <!-- 多版本选择：点字格右下角的黄点展开，选完自动收起，角标变绿 -->
+  <section class="versions" id="versions">
+    <div class="vhead">
+      <span id="vTitle"></span>
+      <span class="vact">
+        <button class="ghost" id="vDefault"
+          data-tip="丢掉这次的选择，回到系统自动分配的那一版。&#10;自动避复的规则：这个字在本句第 n 次出现，就用第 n 种写法。">恢复默认</button>
+      </span>
+    </div>
+    <div class="vgrid" id="vGrid"></div>
+    <div class="vfoot">
+      <button class="primary" id="vConfirm"
+        data-tip="就用现在这一版。&#10;收起面板，角标变绿，并记在本机——下次打开还是它。">选好了</button>
+      <button class="ghost" id="vLater"
+        data-tip="先这样，但还不拍板。&#10;改动会留着，角标保持黄色——方便你把整句都试一遍，再回来逐个定。">再想想</button>
+      <span class="vfoot-note">点一个写法，上方立刻换，面板不关，可以连着试</span>
+    </div>
+    <p class="vhint">每个写法下面标着「本句<b>别处</b>还有几处用了它」。<b class="warn">标红</b>的表示选了会跟别处撞成同字同形——书法忌讳这个，叫避复。系统自动避让时会绕开，你手动挑的时候也照看得见；鼠标停在红字上，会告诉你撞在第几个字。</p>
+  </section>
+
   <section class="footbar" data-page-node-id="05WVgeD60txyMHF4ep0aMw">
     <div class="meta" data-page-node-id="zonQIxD0BZKVv5IjvkyKGX">
       <span id="srcInfo" data-page-node-id="q1j4TudUSSFohd8UThv1Jd"></span>
@@ -42,6 +62,10 @@
     <span class="lg" data-page-node-id="OpT70aha82l1AgyII3xhNd"><i class="sw normal" data-page-node-id="Yr0oyy7pjpxhljyJZxRPsq"></i>原帖字</span>
     <span class="lg" data-page-node-id="Jp7pAUW5Zle5Kvue6JY3iK"><i class="sw borrowed" data-page-node-id="7H3K8Dh6MF6Op1BE3G0eW1"></i>借来的字（角标可悬停查看来源）</span>
     <span class="lg" data-page-node-id="IQHHhQPVar0iAv4Hzkb7lf"><i class="sw missing" data-page-node-id="7rftCrnGpKrdBtlDjeU5Du"></i>缺字（库里没有，如实留空）</span>
+    <span class="lg"><i class="sw vdot-y"></i>黄点：有多种写法，还没挑（系统自动避复）</span>
+    <span class="lg"><i class="sw vdot-t"></i>黄点带晕：挑了但没拍板</span>
+    <span class="lg"><i class="sw vdot-g"></i>绿点：已拍板</span>
+    <span class="lg"><i class="sw dup"></i>同字同形：本句里重复用了同一个写法（要避复）</span>
   </section>
 </main>
 

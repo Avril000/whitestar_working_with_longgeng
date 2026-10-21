@@ -8,8 +8,9 @@
     1. 双击打开更彻底 —— 整个前端只需要 4 个文件，拷给组员不用带一整个图库文件夹
     2. 导出 PNG 必须这么做 —— file:// 打开的页面用 canvas 画本地图片属于「跨域污染」，
        toDataURL 会直接报 SecurityError；dataURI 不受此限制
-    3. 按字去重 —— 同一个字可能有多条记录（不同页各出现一次），
-       但页面上同字永远用同一张图，所以每字只嵌一张，556 字约 10MB
+    3. 每个版本都嵌 —— 同一个字可能有好几种写法（如「之」有 22 版），
+       多版本切换功能要求每个版本都有自己的图，所以按 id 逐条嵌。
+       字形图是调色板 PNG（约 1.9KB/张），全部版本嵌完仍然只有几 MB
 
 用法（在项目根目录下执行）：
     python tools/build_manifest.py
@@ -48,6 +49,7 @@ def main():
         data["books"] = json.loads(BOOKS.read_text(encoding="utf-8"))
 
     glyphs = data.get("glyphs", [])
+    recs_by_id = {g.get("id"): g for g in glyphs if g.get("id")}
 
     # 简体 → 繁体异体映射（让前端输入简体也能找到碑里的繁体字）
     # goals.json 里的格式就是「简体: [繁体…]」，方向正好，直接透传
@@ -55,28 +57,37 @@ def main():
         goals = json.loads(GOALS.read_text(encoding="utf-8"))
         data["variants"] = goals.get("variants", {})
 
-    # 按字去重，挑出每个字要展示/导出的那张图，转成 base64 嵌入
-    by_char = {}
-    for g in glyphs:
-        ch = g.get("char")
-        if ch:
-            by_char.setdefault(ch, []).append(g)
-
+    # 【2026-10-21 改】多版本切换：同一个字可能有好几种写法（如「之」有 22 版），
+    # 所以每个版本都要嵌图，不能只嵌一张。
+    # 字形图已用调色板 PNG 压到约 1.9KB/张，全部版本嵌进来也就几 MB。
     glyph_img = {}
     missing_img = []
-    for ch, records in by_char.items():
-        rec = pick_best(records)
-        gid = rec.get("id")
+    order = {}
+    for i, g in enumerate(glyphs):
+        gid = g.get("id")
         if not gid:
             continue
+        order[gid] = i
         img = IMGDIR / f"{gid}.png"
         if img.exists():
             b64 = base64.b64encode(img.read_bytes()).decode("ascii")
-            glyph_img[ch] = "data:image/png;base64," + b64
+            glyph_img[gid] = "data:image/png;base64," + b64
         else:
-            missing_img.append(ch)
+            missing_img.append(gid)
+
+    # 字 → 该字所有版本（默认顺序：已核对优先，其次原顺序），前端靠它列版本
+    by_char = {}
+    for g in glyphs:
+        ch = g.get("char")
+        gid = g.get("id")
+        if ch and gid:
+            by_char.setdefault(ch, []).append(gid)
+    for ch, ids in by_char.items():
+        by_char[ch] = sorted(ids, key=lambda i: (
+            0 if recs_by_id[i].get("verified") == "已核对" else 1, order[i]))
 
     data["glyph_img"] = glyph_img
+    data["by_char"] = by_char
 
     # 注意：web/glyphs/ 里的图由 make_webglyphs.py 从拓片源生成（透明底墨色字），
     # 本脚本只读取它，不覆盖、不同步。
@@ -94,8 +105,14 @@ def main():
     for g in glyphs:
         count[g.get("nature", "未知")] = count.get(g.get("nature", "未知"), 0) + 1
 
+    multi = {c: len(v) for c, v in by_char.items() if len(v) > 1}
     print(f"已生成 {DST}（{DST.stat().st_size/1024/1024:.1f} MB）")
-    print(f"字形记录：{len(glyphs)} 条，去重后嵌入图片：{len(glyph_img)} 字")
+    print(f"字形记录：{len(glyphs)} 条，嵌入版本图：{len(glyph_img)} 张，"
+          f"按字去重：{len(by_char)} 字")
+    print(f"其中多版本字：{len(multi)} 个"
+          + ("" if not multi else "（最多的几个："
+             + "、".join(f"{c}×{n}" for c, n in
+                        sorted(multi.items(), key=lambda kv: -kv[1])[:5]) + "）"))
     if missing_img:
         print(f"缺图：{len(missing_img)} 字没有对应的 web/glyphs 图片，"
               f"先跑 python tools/make_webglyphs.py  → {missing_img[:10]}")

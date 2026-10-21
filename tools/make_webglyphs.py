@@ -76,7 +76,7 @@ def content_box(img: Image.Image, thr: int = 24):
     return a.getbbox()  # 透明区的 bbox 就是非透明内容框
 
 
-def render_one(src_path: Path, dst_path: Path, size: int, fill: float):
+def render_one(src_path: Path, dst_path: Path, size: int, fill: float, palette: bool = True):
     src = Image.open(src_path)
     img = to_alpha_ink(src)
     src.close()
@@ -97,7 +97,15 @@ def render_one(src_path: Path, dst_path: Path, size: int, fill: float):
     canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     canvas.paste(crop, ((size - nw) // 2, (size - nh) // 2), crop)
 
-    canvas.save(dst_path, "PNG", optimize=True)
+    # 存成调色板 PNG：字形图只有「墨色 + 透明」两种信息，
+    # 量化到 32 色后体积只有 RGBA 的 1/8（实测 9.9KB → 1.2KB），
+    # 平均误差 1.3/255，肉眼完全看不出。
+    # 这样每个版本都能嵌进 data.js，多版本切换才有得选。
+    if palette:
+        canvas.quantize(colors=32, method=Image.FASTOCTREE).save(
+            dst_path, "PNG", optimize=True)
+    else:
+        canvas.save(dst_path, "PNG", optimize=True)
 
     # 墨迹占比：太低说明这一格可能是空白或噪声，提醒人工看一眼
     ink_ratio = sum(1 for p in crop.split()[3].getdata() if p > 128) / (nw * nh)
@@ -110,7 +118,33 @@ def main():
     ap.add_argument("--size", type=int, default=160, help="输出画布边长，默认 160")
     ap.add_argument("--fill", type=float, default=0.88, help="字占画布的比例，默认 0.88")
     ap.add_argument("--force", action="store_true", help="不管时间戳，全部重做")
+    ap.add_argument("--no-palette", dest="palette", action="store_false",
+                    help="不转成调色板 PNG（体积大 8 倍，一般不用的）")
+    ap.set_defaults(palette=True)
+    ap.add_argument("--from-crop", default=None,
+                    help="直接从 crop 目录处理还没入库的新页，例如 --from-crop 10,11,12")
     args = ap.parse_args()
+
+    if args.from_crop:
+        # 新页刚切完、还没进字形库时，直接扫描 crop 目录逐张处理
+        ids = []
+        for pg in [p.strip() for p in args.from_crop.split(",") if p.strip()]:
+            cdir = ROOT / "data" / "processed" / f"glyphs_{pg}" / "crop"
+            for f in sorted(cdir.glob(f"{pg}_*.png")):
+                ids.append((pg, f.stem))
+        if not ids:
+            print("crop 目录里没找到字块，检查页号。")
+            return 1
+        OUTDIR.mkdir(parents=True, exist_ok=True)
+        done = 0
+        for pg, gid in ids:
+            src = ROOT / "data" / "processed" / f"glyphs_{pg}" / "crop" / f"{gid}.png"
+            _, ratio = render_one(src, OUTDIR / f"{gid}.png", args.size, args.fill)
+            done += 1
+            if done % 100 == 0:
+                print(f"  已处理 {done} 个…")
+        print(f"\n完成（--from-crop）：处理 {done} 个 → {OUTDIR}")
+        return 0
 
     if not META.exists():
         print(f"找不到 {META}，请先跑一遍 一键_收卡片.bat")
@@ -144,7 +178,7 @@ def main():
         if dst.exists() and not args.force and dst.stat().st_mtime >= src.stat().st_mtime:
             continue
 
-        _, ratio = render_one(src, dst, args.size, args.fill)
+        _, ratio = render_one(src, dst, args.size, args.fill, args.palette)
         if ratio is None:
             blank.append((gid, g.get("char", "")))
         elif ratio < 0.02:
