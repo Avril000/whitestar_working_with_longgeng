@@ -150,5 +150,94 @@
     "mode": "grid",
     "order": "row",
     "note": "滚动截图长图，14页（2026-10-21 白星提供）"
-  }
+  },
+  "y01": {
+    "image_no": "第1张",
+    "url": "https://g2.ltfc.net/view/SUFA/67db8a30f89224109686d4a4",
+    "book": "颜勤礼碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "note": "滚动截图长图，颜勤礼碑第1页（2026-10-24 白星提供）"
+  },
+  "y02": {
+    "image_no": "第2张",
+    "url": "https://g2.ltfc.net/view/SUFA/67db8a30f89224109686d4a4",
+    "book": "颜勤礼碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "note": "滚动截图长图，颜勤礼碑第2页（2026-10-24 白星提供）"
+  },
+  "y03": {
+    "image_no": "第3张",
+    "url": "https://g2.ltfc.net/view/SUFA/67db8a30f89224109686d4a4",
+    "book": "颜勤礼碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "note": "滚动截图长图，颜勤礼碑第3页（2026-10-24 白星提供）"
+  },
+  "y04": {
+    "image_no": "第4张",
+    "url": "https://g2.ltfc.net/view/SUFA/67db8a30f89224109686d4a4",
+    "book": "颜勤礼碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "note": "滚动截图长图，颜勤礼碑第4页（2026-10-24 白星提供）"
+  },
+  "y05": {
+    "image_no": "第5张",
+    "url": "https://g2.ltfc.net/view/SUFA/67db8a30f89224109686d4a4",
+    "book": "颜勤礼碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "note": "滚动截图长图，颜勤礼碑第5页（2026-10-24 白星提供）"
+  },
+  "y06": {
+    "image_no": "第6张",
+    "url": "https://g2.ltfc.net/view/SUFA/67db8a30f89224109686d4a4",
+    "book": "颜勤礼碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "note": "滚动截图长图，颜勤礼碑第6页（2026-10-24 白星提供）"
+  },
+  "y07": {
+    "image_no": "第7张",
+    "url": "https://g2.ltfc.net/view/SUFA/67db8a30f89224109686d4a4",
+    "book": "颜勤礼碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "note": "滚动截图长图，颜勤礼碑第7页（2026-10-24 白星提供）"
+  },
+  "y08": {
+    "image_no": "第8张",
+    "url": "https://g2.ltfc.net/view/SUFA/67db8a30f89224109686d4a4",
+    "book": "颜勤礼碑",
+    "edition": "原碑",
+    "holder": "西安碑林博物馆藏",
+    "nature": "原碑拓本",
+    "mode": "grid",
+    "order": "row",
+    "note": "滚动截图长图，颜勤礼碑第8页（2026-10-24 白星提供）"
+  },
+  "_颜勤礼碑": "y01~y08 为《颜勤礼碑》（唐 · 颜真卿，西安碑林博物馆藏原碑），与 05~14（多宝塔碑）分属两块碑。URL: https://g2.ltfc.net/view/SUFA/67db8a30f89224109686d4a4"
 }

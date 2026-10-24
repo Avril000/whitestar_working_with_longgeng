@@ -15,9 +15,11 @@
         原编号那一列会显示「手工」，不用额外登记。
 
 用法：
-    python tools/build_cards.py
+    python tools/build_cards.py                    # 全量：所有未冻结、未剔除的页都出卡
+    python tools/build_cards.py y01 y02            # 只制这几页（投递箱模式用这个）
 """
 
+import argparse
 import csv
 import json
 from pathlib import Path
@@ -36,8 +38,11 @@ HEADER = [
 ]
 
 
-def collect():
-    """收集所有保留下来的字块，按 页 → 列（右起）→ 序 排序"""
+def collect(pages=None):
+    """收集所有保留下来的字块，按 页 → 列（右起）→ 序 排序
+
+    pages 不为空时只处理这几页（投递箱模式：只制这一批，别的页碰都不碰）。
+    """
     rows = []
     done_seen = set()   # 已核对字块的碑文字号（防重叠字漏拦，见 collect 尾部去重）
     PAGES_INFO_JSON.update(
@@ -48,6 +53,8 @@ def collect():
             continue
         mf = mfiles[0]
         page = mf.stem.replace("meta_", "")
+        if pages and page not in pages:
+            continue
         data = json.loads(mf.read_text(encoding="utf-8"))
 
         # 冻结的页（例如整幅碑文那批，先不做）整页跳过
@@ -55,9 +62,15 @@ def collect():
             print(f"  第 {page} 页已冻结，跳过（改 pages_info.json 的 frozen 可恢复）")
             continue
 
+        # 碑名必须参与去重：两块碑的碑文字号都是 1、2、3……，
+        # 只按序号去重会把《颜勤礼碑》的第 1 字当成《多宝塔碑》第 1 字的重复，整页跳过。
+        book = (PAGES_INFO_JSON.get(page) or {}).get("book", "")
+
         known = set()
+        rejected = set()
         for rec in data["glyphs"]:
             if rec.get("status") == "rejected":
+                rejected.add(rec["id"])
                 continue
             known.add(rec["id"])
             # 已核对/存疑的块不出卡片，但它的碑文字号仍要登记进 seen——
@@ -65,7 +78,7 @@ def collect():
             if rec.get("verified") in ("已核对", "存疑"):
                 n = rec.get("order_in_text")
                 if n is not None:
-                    done_seen.add(n)
+                    done_seen.add((book, n))
                 continue
             rows.append((page, rec["col_from_right"], rec["index_in_col"], rec["id"], rec))
 
@@ -75,7 +88,9 @@ def collect():
             new_manual = []
             for p in sorted(crop_dir.glob(f"{page}_*.png")):
                 gid = p.stem
-                if gid in known:
+                # known = 已登记；rejected = 已判定剔除（存疑字）——
+                # 两者都不能再当成"新手工块"，否则会往 meta 里重复追加同一条记录
+                if gid in known or gid in rejected:
                     continue
                 new_manual.append(gid)
                 rows.append((page, 99, 0, gid, {
@@ -106,10 +121,14 @@ def collect():
     for row in rows:
         n = row[4].get("order_in_text")
         if n is not None:
-            if n in seen:
+            # 碑名也要参与去重（见上面 done_seen 的说明）：
+            # 《多宝塔碑》第 1 字和《颜勤礼碑》第 1 字不是同一个字，不能互相拦。
+            row_book = (PAGES_INFO_JSON.get(row[0]) or {}).get("book", "")
+            key = (row_book, n)
+            if key in seen:
                 dup += 1
                 continue
-            seen.add(n)
+            seen.add(key)
         deduped.append(row)
     if dup:
         print(f"  跳过重复字块 {dup} 个（相邻截图重叠造成的，同一个碑文字切了两次）")
@@ -118,11 +137,15 @@ def collect():
 
 
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("pages", nargs="*", help="只制这几页，如 y01 y02；不填=全量")
+    args = ap.parse_args()
+
     info = {}
     if PAGES_INFO.exists():
         info = json.loads(PAGES_INFO.read_text(encoding="utf-8"))
 
-    rows = collect()
+    rows = collect(set(args.pages) if args.pages else None)
     if not rows:
         print("没有待核对的字块")
         return

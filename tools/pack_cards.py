@@ -25,7 +25,7 @@ import zipfile
 from datetime import datetime
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageOps
 
 ROOT = Path(__file__).resolve().parent.parent
 CARD_DIR = ROOT / "data" / "cards"
@@ -56,18 +56,94 @@ def gid_of(row):
     return Path(img).stem if img else ""
 
 
-def make_preview(gid, out_path, size=170):
+INK = (26, 26, 26)     # 与 make_webglyphs.py 保持一致：带一点暖的深墨色
+HI, LO = 150, 60       # 亮度→透明度的两个拐点（源图黑底白字：亮的才是笔画）
+
+
+def to_alpha_ink(src: Image.Image) -> Image.Image:
+    """黑底白字的 crop 原图 → 透明底墨色字（RGBA）
+
+    和 make_webglyphs.py 的 to_alpha_ink 是同一套阈值，
+    但这里用 point() 查表代替逐像素循环——一包上千张图，速度差几十倍。
+    """
+    # 先自动色阶：手工补的块背景常是中灰而非纯黑，
+    # 直接套阈值会翻出一层灰雾。拉伸一下，黑就是黑、白就是白。
+    g = ImageOps.autocontrast(src.convert("L"), cutoff=2)
+    lut = [0 if v <= LO else (255 if v >= HI else int(255 * (v - LO) / (HI - LO)))
+           for v in range(256)]
+    alpha = g.point(lut)
+    out = Image.new("RGB", g.size, INK).convert("RGBA")
+    out.putalpha(alpha)
+    return out
+
+
+def is_dark(im: Image.Image) -> bool:
+    """是不是黑底（拓片原样）？缩到 1×1 就是全图平均亮度（BOX 取样最准，也最快）"""
+    return im.convert("L").resize((1, 1), Image.BOX).getpixel((0, 0)) < 128
+
+
+def trim_frame(im: Image.Image, max_frac=0.3):
+    """裁掉被当成笔画的装裱边。
+
+    手工补的块四周常带一圈浅色残边，翻墨时整条边全变成墨。
+    识别特征：边框是"整行/整列都是墨"（alpha 行均值极高），
+    字不可能占满一整行——所以从每侧往里裁，均值一直很高就一直裁。
+    """
+    try:
+        import numpy as np
+    except ImportError:
+        return im
+    a = np.asarray(im.split()[3], dtype=float)
+    h, w = a.shape
+    lim = int(min(h, w) * max_frac)
+
+    def scan(vals):
+        n = 0
+        for v in vals:
+            if v < 170:
+                break
+            n += 1
+        return n
+
+    rows, cols = a.mean(axis=1), a.mean(axis=0)
+    top, bottom = scan(rows), scan(rows[::-1])
+    left, right = scan(cols), scan(cols[::-1])
+    if top + bottom + left + right:
+        return im.crop((left, top, w - right, h - bottom))
+    return im
+
+
+def make_preview(gid, out_path, size=170, fill=0.88):
     """透明底墨字 → 宣纸底 PNG（组员在图片查看器里也能看清）"""
     src = GLYPH_DIR / f"{gid}.png"
     if src.exists():
         im = Image.open(src).convert("RGBA")
     else:
-        # 兜底：网页图还没生成时，直接用 crop 原图（黑底白字）
+        # 兜底：网页图还没生成时（这一批还没收回来），用 crop 原图。
+        # 原图是黑底白字，必须先翻墨——不然组员拿到的是一片黑，
+        # 跟说明里写的「宣纸底墨色字」也对不上。
+        # 处理步骤对齐 make_webglyphs.render_one（裁字→放大→居中），
+        # 这样组员核对时看到的效果和最终入库的图基本一致。
         page = gid.split("_")[0]
         raw = CROP_DIR / f"glyphs_{page}" / "crop" / f"{gid}.png"
         if not raw.exists():
             return False
-        im = Image.open(raw).convert("RGBA")
+        raw_im = Image.open(raw)
+        if is_dark(raw_im):
+            im = trim_frame(to_alpha_ink(raw_im))
+        else:
+            im = raw_im.convert("RGBA")
+        box = im.split()[3].getbbox()
+        if box:
+            crop = im.crop(box)
+            cw, ch = crop.size
+            target = max(1, int(size * fill))
+            scale = min(target / cw, target / ch)
+            nw, nh = max(1, int(round(cw * scale))), max(1, int(round(ch * scale)))
+            crop = crop.resize((nw, nh), Image.LANCZOS)
+            canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+            canvas.paste(crop, ((size - nw) // 2, (size - nh) // 2), crop)
+            im = canvas
     bg = Image.new("RGBA", (size, size), PAPER + (255,))
     im2 = im.resize((size, size), Image.LANCZOS)
     bg.alpha_composite(im2)
