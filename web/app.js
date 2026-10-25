@@ -40,8 +40,37 @@ var state = {
   frame: '文武',   // 外框：关 / 单边（细） / 文武（一粗一细，刻本册页最常见的版框）
   // 间距：字距（列内字与字）、行距（列与列，对联才看得见）、页边距（左右更大些）
   // 这三个值**屏幕和导出共用**——导出时按字格大小的比例换算，所以两边必然一致
-  gap: 8, rowGap: 34, pad: 34
+  gap: 8, rowGap: 34, pad: 34,
+  // 遮罩：叠在每个字格上的临帖辅助线。关 / 田字格 / 米字格 / 九宫格
+  mask: '关',
+  brushOn: false   // 朱笔标注的**开关**（挑了哪些字在 brushSet 里，见下）
 };
+
+/* 朱笔：被标出来的那些字。键和版本选择同一套（碑:字#本句第几次），
+   所以「第 1 个之」和「第 2 个之」可以分别标。
+   ⚠️ 这份**不走 draft**：朱笔是直接在主区域点字标出来的，点了就该立刻看见，
+   不像调参数那样需要"先预览、后应用"。换句话就清空（和版本选择同规矩）。 */
+var brushSet = {};
+function brushKey(ch, idx, book) { return pickKey(ch, idx, book); }
+function isBrushed(ch, idx, book) { return !!brushSet[brushKey(ch, idx, book)]; }
+function toggleBrush(ch, idx, book) {
+  var k = brushKey(ch, idx, book);
+  if (brushSet[k]) delete brushSet[k]; else brushSet[k] = 1;
+}
+function clearBrush() { brushSet = {}; }
+
+/* 朱笔的字染什么颜色：默认朱砂。
+   ⚠️ 整幅已经是朱砂时反过来染成**墨色**——不然满纸皆红，看不出标了哪个；
+   原碑模式（黑底）用亮一档的朱砂，暗朱砂在黑纸上看不见。 */
+function brushInk(ink) {
+  if (ink === 'red') return '#1A1A1A';
+  if (ink === 'rub') return '#C45A48';
+  return '#B23A30';
+}
+
+/* 遮罩的三种样式 → 纸上的 class。和字色、界行同一套路：
+   状态挂在**纸**上（主区域和预览各管各的），彼此不污染。 */
+var MASK_CLS = { '田': 'mask-tian', '米': 'mask-mi', '九': 'mask-jiu' };
 
 /* 页边距左右比上下宽一点，这是纸的样子（竖幅左右留白多）。
    一个滑杆给基准值，横向按这个比例放大——默认 34 → 左右 44，和原来的观感一致。 */
@@ -63,8 +92,8 @@ var SECTIONS = [
   { key: 'style', name: '样式', ready: true },
   { key: 'album', name: '成册', ready: true, todo: '成册界行：给整幅加线框——颜色、方向（横竖）、粗细，以及框离首尾字留多远。做成开关，条幅和对联都能叠。' },
   { key: 'space', name: '间距', ready: true },
-  { key: 'mask', name: '遮罩', ready: false, todo: '单字遮罩：田字格 / 米字格 / 九宫格，勾上就在每个字格上叠一层辅助线，方便对着临。' },
-  { key: 'brush', name: '朱笔', ready: false, todo: '朱笔单字：可以按字挑出某几个字染成朱砂，用来标重点。' }
+  { key: 'mask', name: '遮罩', ready: true },
+  { key: 'brush', name: '朱笔', ready: true }
 ];
 var curSection = 'style';
 
@@ -127,6 +156,7 @@ function resetPicks() {
   picksCache = {};
   okCache = {};
   curPick = null;
+  clearBrush();   // 朱笔标的是"这一句里的第几个字"，换了句子就跟着作废
 }
 
 // 记忆的键 = 碑 + 字 + 本句第几次出现
@@ -310,6 +340,22 @@ function makeGlyphBox(ch, idx, cfg, opts) {
     }
   }
 
+  /* 朱笔标注：开关打开后，点主区域里的字就把它染成朱砂（标重点），再点一下取消。
+     ⚠️ 缺字的格子走不到这里（上面已 return）——没有字可染，不许标。
+     ⚠️ 预览窗格（interactive=false）只跟着显示，不挂点击——挑字在主区域做。 */
+  if (cfg.brushOn) {
+    if (isBrushed(ch, idx, cfg.book)) box.classList.add('brushed');
+    if (opts.interactive) {
+      box.classList.add('pickable');
+      box.addEventListener('click', function () {
+        toggleBrush(ch, idx, cfg.book);
+        render();          // 主区域立刻见效（朱笔不走"先预览后应用"那套）
+        renderPreview();   // 预览窗格同一句、同一套标记，跟着一起变
+        syncPanel();       // 面板里那句"已标 N 个字"要跟着刷新
+      });
+    }
+  }
+
   box.dataset.tip = info;
   return box;
 }
@@ -409,6 +455,43 @@ function redrawDecor(strip, cfg) {
   drawDecor(paper, strip, cfg);
 }
 
+/* 纸只要一变形（开合抽屉改了 main 的内边距、窗口缩放、放大对比、间距滑杆……），
+   居中的字列就会跟着挪，而版框和界行是**按当时量到的坐标画死的**，不会自己跟过去。
+   以前只在"渲染完"和"落款写完"两个点各补画一次，于是
+   "打开抽屉后框错位""取消调整后框往左跑""竖排换横排后框跟着偏"这类 bug
+   一个个冒出来、按下一个起来一个（白星 2026-10-25 报的）。
+   根治：盯着每张纸，尺寸一变就按新坐标重画一次——不用再猜哪里会重排。 */
+function watchDecor() {
+  var papers = ['mainPaper', 'beforePaper', 'previewPaper']
+    .map(function (id) { return document.getElementById(id); })
+    .filter(function (p) { return !!p; });
+  if (!papers.length) return;
+
+  function redrawOne(paper) {
+    var s = paper.querySelector('.strip');
+    if (!s) return;
+    // 预览那张照 draft 画，其余照 state——和它们渲染时用的是同一套设置。
+    // 面板还没开过就没有 draft，这时退回 state，别拿 null 去读配置。
+    drawDecor(paper, s, (paper.id === 'previewPaper' && draft) ? draft : state);
+  }
+  function redrawAll() { papers.forEach(redrawOne); }
+
+  if (typeof window.ResizeObserver !== 'function') {
+    // 老浏览器（以及 jsdom 自检环境）没有 ResizeObserver：至少窗口缩放时补一次
+    window.addEventListener('resize', redrawAll);
+    return;
+  }
+  var ro = new window.ResizeObserver(function (entries) {
+    entries.forEach(function (e) { redrawOne(e.target); });
+  });
+  papers.forEach(function (p) { ro.observe(p); });
+  // 抽屉开合改的是 main 的 padding-left，有 0.22s 过渡；
+  // ResizeObserver 会一路跟，但动画尾帧上再补一次更稳。
+  document.addEventListener('transitionend', function (e) {
+    if (e.target && e.target.tagName === 'MAIN') redrawAll();
+  });
+}
+
 /* 把一句话渲染到指定的 strip 里。主区域和左侧预览窗格共用这一份代码——
    只有"用哪套设置"不同，所以看到的和导出的必然一致。
    返回统计结果，交给调用方去写各自的状态行。 */
@@ -434,6 +517,11 @@ function renderInto(strip, cfg, opts) {
   strip.classList.toggle('ruled', !!cfg.ruled);
   paper.classList.toggle('framed', cfg.frame !== '关');
   paper.classList.toggle('framed-double', cfg.frame === '文武');
+  // 朱笔模式：整张纸进入"可点字"状态（字格变手型、悬停有反应）
+  paper.classList.toggle('brushing', !!cfg.brushOn);
+  // 遮罩：田 / 米 / 九宫格。三种互斥，所以先把三个 class 都摘掉再挂当前那个。
+  paper.classList.remove('mask-tian', 'mask-mi', 'mask-jiu');
+  if (MASK_CLS[cfg.mask]) paper.classList.add(MASK_CLS[cfg.mask]);
   // 颜色和导出 PNG 里用的是同一组值（含透明度），屏幕上看到的才和拿到的完全一致
   paper.style.setProperty('--rule', cfg.ruleColor === 'ink' ?
     'rgba(58, 54, 48, 0.55)' : 'rgba(158, 61, 50, 0.55)');
@@ -489,6 +577,11 @@ function renderInto(strip, cfg, opts) {
     if (!gid || !use[gid] || use[gid].length < 2) return;
     dupCount++;
     box.classList.add('dup');
+    // 红色感叹号角标（不是虚线框——遮罩一上场，格子里本来就有线，会打架）
+    var ws = document.createElement('i');
+    ws.className = 'warnsign';
+    ws.textContent = '!';
+    box.appendChild(ws);
     if (box.dataset.tip) {
       box.dataset.tip += '\n—\n注意：本句第 ' +
         use[gid].map(function (u) { return u.order; }).join('、') +
@@ -921,8 +1014,13 @@ function exportPNG() {
           continue;
         }
 
-        // 朱砂：同一张字形图，换成朱砂色再画（屏幕上也是这么做的）
-        if (state.ink === 'red') {
+        /* 上色顺序：朱笔（逐字）→ 全局字色（整幅）→ 原色。
+           朱笔最优先——它是"这一个字被标出来了"，得压过整幅统一的颜色。
+           颜色取法和屏幕上一个函数（brushInk），所以两边必然一致。 */
+        if (state.brushOn && isBrushed(ch, cell.idx, state.book)) {
+          ctx.drawImage(tintImage(im, brushInk(state.ink)), x, cy, SIZE, SIZE);
+        } else if (state.ink === 'red') {
+          // 朱砂：同一张字形图，换成朱砂色再画（屏幕上也是这么做的）
           ctx.drawImage(tintImage(im, '#B23A30'), x, cy, SIZE, SIZE);
         } else {
           ctx.drawImage(im, x, cy, SIZE, SIZE);
@@ -972,6 +1070,41 @@ function exportPNG() {
             ctx.moveTo(xR, aT); ctx.lineTo(xR, aB);
           }
           ctx.stroke();
+        });
+        ctx.restore();
+      }
+
+      /* 遮罩（田字格 / 米字格 / 九宫格）：叠在每个字格上的辅助线。
+         和屏幕上是同一套线（见 style.css 的 .glyph::after），只是这里用 canvas 画，
+         所以打印出来能描。同样是"标记"，排在反色之后画，保住本色。 */
+      if (MASK_CLS[state.mask]) {
+        ctx.save();
+        ctx.strokeStyle = state.ink === 'rub' ?
+          'rgba(232, 230, 222, 0.26)' : 'rgba(120, 112, 98, 0.32)';
+        ctx.lineWidth = Math.max(1, Math.round(1 * K));
+        cols.forEach(function (part, ci) {
+          for (var j = 0; j < part.length; j++) {
+            var q = cellXY(ci, j);
+            var L = q.x, T = q.y, R = q.x + SIZE, B = q.y + SIZE;
+            var cx = L + SIZE / 2, cy = T + SIZE / 2;
+            var t = SIZE / 3;
+            ctx.beginPath();
+            if (state.mask === '田' || state.mask === '米') {
+              ctx.moveTo(cx, T); ctx.lineTo(cx, B);
+              ctx.moveTo(L, cy); ctx.lineTo(R, cy);
+            }
+            if (state.mask === '米') {
+              ctx.moveTo(L, T); ctx.lineTo(R, B);
+              ctx.moveTo(R, T); ctx.lineTo(L, B);
+            }
+            if (state.mask === '九') {
+              ctx.moveTo(L + t, T); ctx.lineTo(L + t, B);
+              ctx.moveTo(L + t * 2, T); ctx.lineTo(L + t * 2, B);
+              ctx.moveTo(L, T + t); ctx.lineTo(R, T + t);
+              ctx.moveTo(L, T + t * 2); ctx.lineTo(R, T + t * 2);
+            }
+            ctx.stroke();
+          }
         });
         ctx.restore();
       }
@@ -1340,7 +1473,9 @@ function cloneCfg(c) {
     ruled: !!c.ruled, ruleDir: c.ruleDir || '竖',
     ruleColor: c.ruleColor || 'red', ruleWidth: c.ruleWidth || '细',
     frame: c.frame || '文武',
-    gap: num(c.gap, 8), rowGap: num(c.rowGap, 34), pad: num(c.pad, 34)
+    gap: num(c.gap, 8), rowGap: num(c.rowGap, 34), pad: num(c.pad, 34),
+    mask: c.mask || '关',
+    brushOn: !!c.brushOn
   };
 }
 
@@ -1358,7 +1493,9 @@ function cfgEqual(a, b) {
     a.frame === b.frame &&
     num(a.gap, 8) === num(b.gap, 8) &&
     num(a.rowGap, 34) === num(b.rowGap, 34) &&
-    num(a.pad, 34) === num(b.pad, 34);
+    num(a.pad, 34) === num(b.pad, 34) &&
+    (a.mask || '关') === (b.mask || '关') &&
+    !!a.brushOn === !!b.brushOn;
 }
 
 function isDirty() {
@@ -1448,6 +1585,20 @@ function syncPanel() {
   Array.prototype.forEach.call(el('segFrame').querySelectorAll('.segbtn'), function (b) {
     b.classList.toggle('on', b.dataset.v === cfg.frame);
   });
+  Array.prototype.forEach.call(el('segMask').querySelectorAll('.segbtn'), function (b) {
+    b.classList.toggle('on', b.dataset.v === (cfg.mask || '关'));
+  });
+  Array.prototype.forEach.call(el('segBrush').querySelectorAll('.segbtn'), function (b) {
+    b.classList.toggle('on', (b.dataset.v === 'on') === !!cfg.brushOn);
+  });
+  var bc = el('btnBrushClear');
+  if (bc) bc.disabled = Object.keys(brushSet).length === 0;
+  var bt = el('brushTip');
+  if (bt) {
+    var n = Object.keys(brushSet).length;
+    bt.textContent = n ? '已标 ' + n + ' 个字' : '还没标任何字';
+    bt.classList.toggle('on', n > 0);
+  }
   syncSpacePanel(cfg);
 }
 
@@ -1613,6 +1764,7 @@ function init() {
   openSection(curSection);
   syncPanel();
   applyInkToPage(state.ink);
+  watchDecor();   // 纸一变形就重画版框/界行（见函数上的说明）
 
   el('input').addEventListener('input', function () {
     closeVersions();   // 改了内容，版本区里的字可能已经不在句里了
@@ -1668,8 +1820,26 @@ function init() {
     markDirty();
   });
 
+  // 朱笔开关：开了只说明"可以点字标了"，具体标哪些字在主区域点（不走预览流程）
+  el('segBrush').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.segbtn') : null;
+    if (!b || !draft) return;
+    draft.brushOn = (b.dataset.v === 'on');
+    syncPanel();
+    renderPreview();
+    markDirty();
+  });
+
+  // 【全部取消】把这一句标过的朱笔一次清掉
+  el('btnBrushClear').addEventListener('click', function () {
+    clearBrush();
+    syncPanel();
+    render();
+    renderPreview();
+  });
+
   ['segRuleDir:ruleDir', 'segRuleColor:ruleColor', 'segRuleWidth:ruleWidth',
-   'segFrame:frame'].forEach(function (pair) {
+   'segFrame:frame', 'segMask:mask'].forEach(function (pair) {
     var p = pair.split(':');
     el(p[0]).addEventListener('click', function (e) {
       var b = e.target.closest ? e.target.closest('.segbtn') : null;

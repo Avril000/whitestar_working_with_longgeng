@@ -264,6 +264,51 @@
 所以屏幕上看到的和拿到的必然一致。</p>
       </section>
 
+      <section class="dpane" data-key="mask">
+        <h3 class="dtitle">字格遮罩</h3>
+        <div class="seg" id="segMask">
+          <button class="segbtn" data-v="关"
+            data-tip="不叠辅助线，只留字。&#10;要拿去装裱、或者已经临熟了，就用这个。">关</button>
+          <button class="segbtn" data-v="田"
+            data-tip="田字格：一横一竖过字格中心，把一格分成四块。&#10;最基础的临帖辅助线——看重心落在哪、偏旁占了多少。">田字格</button>
+          <button class="segbtn" data-v="米"
+            data-tip="米字格：田字格再添两条对角线。&#10;多出来的斜线用来看撇捺的走向、字往哪个方向舒展。">米字格</button>
+          <button class="segbtn" data-v="九"
+            data-tip="九宫格：井字线把一格分成九块。&#10;看中宫收不收得住、四面八方的笔画铺得匀不匀——练结构用。">九宫格</button>
+        </div>
+        <p class="dnote">辅助线叠在每一个字格上，用来对着看结构，不是装饰。
+导出 PNG 里也画，可以打印出来描。
+线用淡墨灰，不和朱砂字抢颜色；原碑模式（黑底白字）下自动换成淡灰白，才看得见。</p>
+
+        <h3 class="dtitle">同字同形的标记</h3>
+        <p class="dnote">本句里同一个写法被用到两次以上，那一格左上角会挂一枚红色感叹号。
+⚠️ 这里不用虚线框——遮罩一上场，格子里本来就有线，
+再来一圈虚线框就分不清哪条是辅助线、哪条是提醒了。</p>
+      </section>
+
+      <section class="dpane" data-key="brush">
+        <h3 class="dtitle">朱笔标注</h3>
+        <div class="seg" id="segBrush">
+          <button class="segbtn" data-v="on"
+            data-tip="打开之后，主区域里的字就可以点了——&#10;点哪个字，哪个字染成朱砂，用来标重点、标要练的字。&#10;再点一下取消。">开</button>
+          <button class="segbtn" data-v="off"
+            data-tip="关掉朱笔，整幅回到统一颜色。&#10;已经标过的字还记着，再开回来还在。">关</button>
+        </div>
+
+        <div class="brushbox">
+          <span class="btip" id="brushTip">还没标任何字</span>
+          <button class="ghost" id="btnBrushClear"
+            data-tip="把这一句标过的朱笔一次全清掉。">全部取消</button>
+        </div>
+
+        <p class="dnote">朱笔是逐字的：点哪个字，哪个字变红。
+同一句里第 1 个「之」和第 2 个「之」可以分别标——键是「碑:字#本句第几次」，
+和版本选择同一套规矩，所以换了句子会自动清空。
+⚠️ 字色已经是「朱砂」时，朱笔的字反过来染成墨色——
+不然满纸皆红，根本看不出标的是哪个。
+导出 PNG 里也是这个颜色，打印出来照样看得出重点。</p>
+      </section>
+
     </div>
     <nav class="dmenu" id="dmenu"></nav>
   </div>

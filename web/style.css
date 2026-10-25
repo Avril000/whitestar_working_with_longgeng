@@ -26,6 +26,7 @@
   background: #0A0B0E;
   border-color: #26292F;
   --ink: #E8E6DE;   /* 白字：字形图是遮罩，颜色由 --ink 给，换这里就行 */
+  --mask: rgba(232, 230, 222, 0.26);   /* 辅助线在黑纸上看不见，换成淡灰白 */
 }
 /* 版本面板同纸一个规矩：原碑模式改成黑底白字，不反整幅。
    ⚠️ 面板里也有朱砂提示文字（「标红」「另有 N 处已用」），反色照样变蓝。
@@ -102,7 +103,24 @@ body.previewing main { padding-left: var(--pw); }
   border-radius: 6px;
 }
 
-.stage { display: flex; justify-content: center; margin: 30px 0; }
+/* ⚠️ 纸可能比舞台宽（字一多就会），这时必须能横向滚，不能把左边的字"吃掉"。
+   居中用 safe center：放不下时自动退回左对齐——
+   普通 center 会把溢出的左半边推到滚动区外面，永远看不见，也不给滚动条，
+   对联一多列就"左边的字顶出屏幕"（白星 2026-10-25 报的）。
+   safe 不被支持时会退回上一行的 center，不会比现在更差。 */
+.stage {
+  display: flex;
+  justify-content: center;
+  justify-content: safe center;
+  overflow-x: auto;
+  /* 开了滚动就会按 padding 盒裁切，留一圈免得把纸的投影切掉一条硬边 */
+  padding: 12px 4px;
+  margin: 18px 0;
+}
+/* 居中靠自动外边距，不靠 justify-content——
+   放不下时自动外边距会退化成 0，纸就贴着左边摆、往右溢出，
+   这样溢出的部分一定在滚动条够得着的一侧（比 safe center 更老牌，人人支持）。 */
+.stage > .paper { margin: 0 auto; }
 
 .paper {
   position: relative;
@@ -118,8 +136,16 @@ body.previewing main { padding-left: var(--pw); }
   --gr: 34px;    /* 行距：列与列（竖排）/ 行与行（横排）*/
   --ppad-y: 34px;
   --ppad-x: 44px;
+  /* 遮罩（田字格 / 米字格 / 九宫格）的辅助线色。
+     用淡墨灰而不是朱砂：朱砂字模式下，朱砂线会和笔画一个颜色，分不清哪条是线。
+     原碑模式（黑底）在 .paper.ink-rub 里换成淡灰白。 */
+  --mask: rgba(120, 112, 98, 0.32);
   padding: var(--ppad-y) var(--ppad-x);
-  min-width: 190px;
+  /* ⚠️ 纸是 .stage 的 flex 子项，最小宽度必须是**内容的最小宽**（min-content），
+     不能写死一个比它小的数——写死 190px 就等于允许纸被压到比字区还窄，
+     字就跑到纸外面去了（横排 5 字、竖排对联 4 列就开始犯，白星 2026-10-25 报的）。
+     撑不下时纸保持内容宽、由 .stage 横向滚动，而不是让字溢出。 */
+  min-width: min-content;
 }
 
 /* 落款：在版框之外的下方（框只框字区），和导出 PNG 里是同一套分行。
@@ -278,6 +304,7 @@ body.previewing main { padding-left: var(--pw); }
 
 .glyph.borrowed .dot {
   position: absolute;
+  z-index: 2;
   top: 5px;
   right: 5px;
   width: 8px;
@@ -293,11 +320,96 @@ body.previewing main { padding-left: var(--pw); }
   font-size: 20px;
 }
 
-/* 同字同形：本句里同一个写法被用了两次以上（书法忌讳，要避复） */
-.glyph.dup {
-  background: #FDF6F4;
-  outline: 1px dashed #C0796B;
-  outline-offset: -1px;
+/* 同字同形：本句里同一个写法被用了两次以上（书法忌讳，要避复）。
+   ⚠️ 标记是**左上角一枚红色感叹号**，不是虚线框——
+   遮罩（田字格 / 米字格 / 九宫格）一上场，格子里本来就有辅助线，
+   再来一圈虚线框就分不清哪条是辅助线、哪条是提醒（2026-10-25 定的取舍）。 */
+.glyph.dup { background: #FDF6F4; }
+
+.glyph .warnsign {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #9E3D32;
+  color: #FBF9F3;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 14px;
+  text-align: center;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  pointer-events: none;
+  z-index: 3;   /* 压在遮罩辅助线之上——提醒得一眼看见 */
+}
+/* 黑纸上朱砂偏暗，提亮一档才看得清（和界行同理：标记保持本色，只调明度） */
+.paper.ink-rub .glyph .warnsign { background: #D4705E; }
+
+/* ---------- 字格遮罩：田字格 / 米字格 / 九宫格 ----------
+   叠在每个字格上的一层辅助线，方便对着看结构。
+   画在 .glyph::after 上（::before 已经被字形图当遮罩用了），不额外加 DOM。
+   线色由 --mask 给，变量挂在**纸**上——主区域和预览各管各的，和字色同一套路。
+   导出 PNG 里画的是同一套线（见 app.js 的 paintDecor），可以打印出来描。 */
+.glyph::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;   /* 压在字上、但不压住角标（版本角标 z-index 更高，见下面） */
+  display: none;
+}
+.paper.mask-tian .glyph::after,
+.paper.mask-mi .glyph::after,
+.paper.mask-jiu .glyph::after { display: block; }
+
+/* 田字格：一横一竖过字格中心 */
+.paper.mask-tian .glyph::after {
+  background:
+    linear-gradient(var(--mask), var(--mask)) 50% 0 / 1px 100% no-repeat,
+    linear-gradient(var(--mask), var(--mask)) 0 50% / 100% 1px no-repeat;
+}
+
+/* 米字格：田字格再添两条对角线。
+   对角线用渐变在 50% 处切出一条 1px 的线——和导出里的画法是同一套分法。 */
+.paper.mask-mi .glyph::after {
+  background:
+    linear-gradient(var(--mask), var(--mask)) 50% 0 / 1px 100% no-repeat,
+    linear-gradient(var(--mask), var(--mask)) 0 50% / 100% 1px no-repeat,
+    linear-gradient(to bottom right,
+      transparent calc(50% - 0.5px), var(--mask) calc(50% - 0.5px),
+      var(--mask) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
+    linear-gradient(to bottom left,
+      transparent calc(50% - 0.5px), var(--mask) calc(50% - 0.5px),
+      var(--mask) calc(50% + 0.5px), transparent calc(50% + 0.5px));
+}
+
+/* 九宫格：井字线，两条竖线两条横线，把一格分成九块 */
+.paper.mask-jiu .glyph::after {
+  background:
+    linear-gradient(var(--mask), var(--mask)) calc(100% / 3) 0 / 1px 100% no-repeat,
+    linear-gradient(var(--mask), var(--mask)) calc(200% / 3) 0 / 1px 100% no-repeat,
+    linear-gradient(var(--mask), var(--mask)) 0 calc(100% / 3) / 100% 1px no-repeat,
+    linear-gradient(var(--mask), var(--mask)) 0 calc(200% / 3) / 100% 1px no-repeat;
+}
+
+/* ---------- 朱笔标注（逐字标重点）----------
+   字形图是"透明底 + 单色墨"的遮罩，颜色由 --ink 给（见 .glyph::before），
+   所以标一个字只要**在这一格上把 --ink 换掉**，不用另存一份图、也不用重画。
+   三种字色下的取值和导出 PNG 共用 app.js 里的 brushInk()。 */
+.glyph.brushed { --ink: #B23A30; }                 /* 默认：墨底朱字 */
+.paper.ink-red .glyph.brushed { --ink: #1A1A1A; }  /* 整幅已是朱砂 → 反过来染墨，才看得出 */
+.paper.ink-rub .glyph.brushed { --ink: #C45A48; }  /* 黑底：暗朱砂看不见，提亮一档 */
+
+/* 朱笔模式下，主区域的字格变成可点的（预览窗格不可点，挑字只在主区域做） */
+.paper.brushing .glyph.pickable { cursor: pointer; }
+.paper.brushing .glyph.pickable:hover {
+  background: #FBF1EC;
+  box-shadow: inset 0 0 0 1px rgba(158, 61, 50, 0.35);
+}
+.paper.brushing.ink-rub .glyph.pickable:hover {
+  background: #241C1A;
+  box-shadow: inset 0 0 0 1px rgba(196, 90, 72, 0.5);
 }
 
 /* 缺字格下方显示输入的原字 */
@@ -317,6 +429,7 @@ body.previewing main { padding-left: var(--pw); }
    角标里写的是这个字在碑里一共有几种写法 */
 .glyph .vdot {
   position: absolute;
+  z-index: 2;   /* 版本角标要压在遮罩辅助线之上，不然会被一条细线划过 */
   right: 2px;
   bottom: 2px;
   min-width: 16px;
@@ -728,17 +841,16 @@ body.previewing main { padding-left: var(--pw); }
   padding: 20px 16px;
   display: flex;
   justify-content: center;
+  justify-content: safe center;   /* 放不下时退回左对齐，溢出的部分才滚得到 */
   align-items: flex-start;
 }
 
 .pcol { display: flex; flex-direction: column; gap: 8px; }
-/* 预览里的纸小一号，页边距跟着变小——外框的 inset 是按变量算的，会自动跟着缩 */
-.pcol .paper {
-  --ppad-y: 26px;
-  --ppad-x: 30px;
-  padding: var(--ppad-y) var(--ppad-x);
-  flex-shrink: 0;
-}
+/* 预览里的纸和主区域**同尺寸**——所见即所得，预览不是缩略图。
+   （这里以前写过 --ppad-y/x 想让纸"小一号"，但 JS 是把间距写在纸的 inline style 上的，
+   内联样式压过样式表，那两行一直是死的，删掉免得误导。）
+   flex-shrink: 0 是纵向的：预览区可以上下滚，纸不该被压扁。 */
+.pcol .paper { flex-shrink: 0; }
 
 /* 平时只显示"改动后"——"改动前"就是主区域本身，不用重复摆一遍 */
 .pcol.before { display: none; }
@@ -1031,6 +1143,21 @@ body.previewing.zoomed main { padding-left: 0; }
   border-radius: 8px;
   background: #FBF9F3;
 }
+
+/* 朱笔那一栏：左边报"标了几个字"，右边一个【全部取消】 */
+.brushbox {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: 1px solid #EAE5D6;
+  border-radius: 8px;
+  background: #FBF9F3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.btip { font-size: 12px; color: #8A8474; }
+.btip.on { color: #9E3D32; }
 
 .sealprev {
   display: flex;

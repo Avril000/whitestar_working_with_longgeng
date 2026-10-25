@@ -117,10 +117,9 @@ try {
   const menu = document.querySelectorAll('#dmenu .dmi');
   check('目录列出全部 5 项（样式/成册/间距/遮罩/朱笔）', menu.length === 5);
   check('只有"样式"是亮的可用的', menu[0].classList.contains('on') && !menu[0].classList.contains('todo'));
-  check('做完的三项（样式/成册/间距）不灰，后两项灰着标 todo',
-    !menu[1].classList.contains('todo') && !menu[2].classList.contains('todo') &&
-    menu[3].classList.contains('todo') && menu[4].classList.contains('todo'));
-  check('todo 项也有说明，说清排第几', (menu[3].dataset.tip || '').includes('第 4 项'));
+  check('五项全部做完，目录里没有灰着的了',
+    Array.from(menu).length === 5 &&
+    Array.from(menu).every(b => !b.classList.contains('todo')));
 
   const bkbtns = document.querySelectorAll('#bookSeg .segbtn');
   check('碑本按钮列出 books.json 里登记的两块碑', bkbtns.length === 2);
@@ -354,6 +353,9 @@ try {
     strip.querySelectorAll('.glyph.dup').length === 2);
   check('状态栏报出同字同形处数',
     document.getElementById('stateInfo').textContent.includes('2 处同字同形'));
+  // 遮罩上场后，同字同形不能用虚线框了——格子里本来就有辅助线，会打架
+  check('同字同形的两格各挂一枚红色感叹号角标',
+    strip.querySelectorAll('.glyph.dup .warnsign').length === 2);
   window.clearPick('之', 0);
   window.clearPick('之', 1);
 
@@ -718,6 +720,167 @@ try {
 // 面板文案：字色要写明是「全局」的，不然会以为是给某一个字上色（和朱笔混淆）
 check('字色标注了「全局」', /字色（全局）/.test(html));
 check('字色下面说明了是整幅一起变', /整幅字的颜色/.test(html));
+
+// ===== 纸的宽窄：字不许跑到纸外面（白星 2026-10-25 报的"顶出屏幕"）=====
+/* 病根两条，缺一条就复发：
+   ① 纸是 flex 子项，最小宽写死成一个比内容小的数，就会被压得比字区还窄 → 字溢出；
+   ② 容器居中用普通 center，溢出时左半边被推到滚动区外，看不见也没有滚动条。 */
+check('纸的最小宽 = 内容宽（不再写死 190px 把纸压窄）',
+  /\.paper\s*\{[\s\S]*?min-width:\s*min-content/.test(css) && !/min-width:\s*190px/.test(css));
+check('舞台放不下纸时能横向滚', /\.stage\s*\{[\s\S]*?overflow-x:\s*auto/.test(css));
+check('居中用 safe center：溢出时退回左对齐，左半边才滚得到',
+  (css.match(/justify-content:\s*safe center/g) || []).length >= 2);
+
+// 纸一变形（开合抽屉改 main 内边距 / 窗口缩放 / 放大对比）版框就得按新坐标重画
+check('盯着纸的尺寸变化重画版框（ResizeObserver）', /ResizeObserver/.test(appJs));
+check('没有 ResizeObserver 的环境还有 resize 兜底',
+  /addEventListener\('resize'/.test(appJs));
+check('抽屉开合的过渡结束后再补画一次', /transitionend/.test(appJs));
+try {
+  const before = document.querySelectorAll('#mainPaper .pframe').length;
+  window.dispatchEvent(new window.Event('resize'));
+  check('窗口缩放后版框数量不变、没有报错',
+    document.querySelectorAll('#mainPaper .pframe').length === before && before > 0);
+} catch (e) {
+  fail++;
+  console.log('  ✗ 缩放重画异常: ' + e.message);
+}
+
+// ===== 第 4 项【遮罩】：田字格 / 米字格 / 九宫格 =====
+try {
+  const mp2 = document.getElementById('mainPaper');
+  const pv2 = document.getElementById('previewPaper');
+  const menuMask = Array.from(document.querySelectorAll('#dmenu .dmi'))
+    .find(b => b.textContent === '遮罩');
+  const hasMask = () => /\bmask-(tian|mi|jiu)\b/.test(mp2.className);
+
+  check('目录里【遮罩】已经是可点的（不再灰着）',
+    !!menuMask && !menuMask.classList.contains('todo'));
+  check('默认不叠遮罩', !hasMask());
+
+  panelSet('#segMask', '田');
+  check('选「田字格」并应用：纸挂上 mask-tian', mp2.classList.contains('mask-tian'));
+  check('田字格 = 过中心的一横一竖',
+    /\.paper\.mask-tian \.glyph::after \{[\s\S]*?50% 0 \/ 1px 100%[\s\S]*?0 50% \/ 100% 1px/.test(css));
+
+  panelSet('#segMask', '米');
+  check('换「米字格」：田字格那个 class 摘掉了（三种互斥）',
+    mp2.classList.contains('mask-mi') && !mp2.classList.contains('mask-tian'));
+  check('米字格比田字格多两条对角线',
+    /\.paper\.mask-mi \.glyph::after \{[\s\S]*?to bottom right[\s\S]*?to bottom left/.test(css));
+
+  panelSet('#segMask', '九');
+  check('换「九宫格」：井字线，一格分成九块',
+    mp2.classList.contains('mask-jiu') && /calc\(200% \/ 3\)/.test(css));
+
+  // 遮罩也走"先预览、后应用"这套
+  document.getElementById('btnAdjust').click();
+  document.querySelector('#segMask .segbtn[data-v="田"]').click();
+  check('改遮罩先只动预览，主区域还是改动前',
+    pv2.classList.contains('mask-tian') && !mp2.classList.contains('mask-tian'));
+  document.getElementById('btnCancel').click();
+  document.getElementById('drawerClose').click();
+
+  panelSet('#segMask', '关');
+  check('选「关」：三个遮罩 class 全部清掉', !hasMask());
+} catch (e) {
+  fail++;
+  console.log('  ✗ 遮罩执行异常: ' + e.message);
+  console.log(e.stack.split('\n').slice(0, 4).join('\n'));
+}
+
+// 遮罩是辅助线，不是字形：颜色跟着纸走；导出也要画，才能打印出来描
+check('遮罩线色挂在纸上（变量 --mask），黑底模式自动换成淡灰白',
+  /\.paper \{[\s\S]*?--mask:/.test(css) && /\.paper\.ink-rub \{[\s\S]*?--mask:/.test(css));
+check('导出 PNG 里也画遮罩（打印出来能描）', /MASK_CLS\[state\.mask\]/.test(appJs));
+check('同字同形不再用虚线框（遮罩一上场会和辅助线打架）',
+  /\.glyph\.dup \{[^}]*background/.test(css) && !/\.glyph\.dup \{[^}]*outline/.test(css) &&
+  /\.glyph \.warnsign \{/.test(css));
+check('遮罩那一项在面板里有说明', /id="segMask"/.test(html) && /辅助线叠在每一个字格上/.test(html));
+
+// ===== 第 5 项【朱笔】：逐字染朱砂标重点 =====
+try {
+  const stripB = document.getElementById('strip');
+  const mp3 = document.getElementById('mainPaper');
+  const pv3 = document.getElementById('previewPaper');
+  const glyphs = () => Array.from(stripB.querySelectorAll('.glyph:not(.missing)'));
+
+  check('目录里【朱笔】也已经可点',
+    Array.from(document.querySelectorAll('#dmenu .dmi'))
+      .some(b => b.textContent === '朱笔' && !b.classList.contains('todo')));
+
+  // 默认关着：纸不进"可点"状态，字格也没有可点的标记
+  check('默认不进朱笔模式', !mp3.classList.contains('brushing'));
+
+  panelSet('#segBrush', 'on');
+  check('开了朱笔：纸进入可点字的状态', mp3.classList.contains('brushing'));
+  check('开了朱笔：每个字格都挂上可点标记',
+    glyphs().length > 0 && glyphs().every(g => g.classList.contains('pickable')));
+  check('开了但还没点：一个字都没染', stripB.querySelectorAll(".glyph.brushed").length === 0);
+
+  /* 换成「之之」这句：同一个字连着出现两次，正好验"逐字"——
+     标第 1 个，第 2 个不该跟着变。（键是"碑:字#本句第几次"。） */
+  document.getElementById('input').value = '之之';
+  document.getElementById('input').dispatchEvent(new window.Event('input', { bubbles: true }));
+  /* ⚠️ render() 会把字格整个重建，所以点完之后必须**重新查**一次 DOM——
+     拿着点之前那个元素对象去验，验的是已经被换掉的旧格子。 */
+  const brushed = () => glyphs().filter(g => g.classList.contains('brushed'));
+  const type = (t) => {
+    document.getElementById('input').value = t;
+    document.getElementById('input').dispatchEvent(new window.Event('input', { bubbles: true }));
+  };
+
+  if (glyphs().length === 2) {
+    glyphs()[0].click();
+    check('点第 1 个「之」，只有它被染成朱砂（逐字，不是整幅）',
+      brushed().length === 1 && glyphs()[0].classList.contains('brushed'));
+    check('同一个字的另一次出现不受牵连（第 1 个之 ≠ 第 2 个之）',
+      !glyphs()[1].classList.contains('brushed'));
+    check('预览窗格跟着一起标（同一句、同一套标记）',
+      pv3.querySelectorAll('.glyph.brushed').length === 1);
+    glyphs()[0].click();
+    check('再点一下取消', brushed().length === 0);
+    glyphs()[0].click();
+    glyphs()[1].click();
+    check('两个「之」分别标上', brushed().length === 2);
+    check('面板里报出标了几个字',
+      document.getElementById('brushTip').textContent.includes('已标 2 个字'));
+
+    document.getElementById('btnBrushClear').click();
+    check('【全部取消】一次清空', brushed().length === 0);
+  } else {
+    check('「之之」要排出两个字格才能验"逐字"', false);
+  }
+
+  // 换了句子：上一句标的不作数（和版本选择同一套规矩）
+  glyphs()[0].click();
+  const before = brushed().length;
+  type('道法自然');
+  document.getElementById('input').value = '道法自然';
+  document.getElementById('input').dispatchEvent(new window.Event('input', { bubbles: true }));
+  check('换了句子，上一句标的朱笔自动清空（不跟到下一句）',
+    before > 0 && brushed().length === 0);
+  type('上善若水 道法自然');
+
+  panelSet('#segBrush', 'off');
+  check('关掉朱笔：纸退出可点状态', !mp3.classList.contains('brushing'));
+} catch (e) {
+  fail++;
+  console.log('  ✗ 朱笔执行异常: ' + e.message);
+  console.log(e.stack.split('\n').slice(0, 4).join('\n'));
+}
+
+// 朱笔的颜色：字形图是遮罩，颜色由 --ink 给，所以换 --ink 就够了，不用另存图
+check('朱笔只换这一格的 --ink（不另存图、不重画）', /\.glyph\.brushed \{ --ink:/.test(css));
+check('整幅已是朱砂时，朱笔反过来染墨色（不然满纸皆红看不出标了哪个）',
+  /\.paper\.ink-red \.glyph\.brushed \{ --ink: #1A1A1A/.test(css));
+check('黑底模式用亮一档的朱砂（暗朱砂在黑纸上看不见）',
+  /\.paper\.ink-rub \.glyph\.brushed \{ --ink: #C45A48/.test(css));
+check('上色的取法和导出 PNG 共用同一个函数（两边必然一致）',
+  /function brushInk/.test(appJs) && /brushInk\(state\.ink\)/.test(appJs));
+check('缺字的格子不许标朱笔（没有字可染）',
+  /if \(cfg\.brushOn\) \{[\s\S]*?isBrushed/.test(appJs) &&
+  /box\.classList\.add\('missing'\);[\s\S]*?return box;/.test(appJs));
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);
