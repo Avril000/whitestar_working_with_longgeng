@@ -17,16 +17,16 @@
   <section class="panel" data-page-node-id="Lt58buv0THlxbLHks04Sgv">
     <div class="row" data-page-node-id="KdD2XFUH9l5Tf00s6TeVOu">
       <input id="input" type="text" value="上善若水 道法自然" placeholder="输入一句话；对联请用空格分隔上下联" data-page-node-id="TnnkihbDirbengheL3lZ30">
-      <button class="pick" id="btnBook" data-page-node-id="PstMcnFaTiGnsrbPrAPo8D">多宝塔碑</button>
-      <button class="pick" id="btnLayout" data-page-node-id="KDxjgt4svJtD3LAnMjnX55">条幅</button>
+      <button class="pick" id="btnAdjust"
+        data-tip="打开右侧的调整面板：底本、排版、字色都在这里。&#10;面板从右边滑出来，左边的目录可以切换分组。">集字调整</button>
     </div>
-    <p class="intro" id="intro" data-page-node-id="yrBNL8CUMLg8foGzc1xFFQ"></p>
   </section>
 
   <section class="stage" data-page-node-id="hpOHIgTHkry0eaatCOYhM5">
-    <div class="paper" data-page-node-id="XkIh4xm1wtC2Z7TMZsymO9">
+    <div class="paper" id="mainPaper" data-page-node-id="XkIh4xm1wtC2Z7TMZsymO9">
       <div class="strip" id="strip" data-page-node-id="yNUAGBFB0jrQSoFfKrf19T"></div>
-      <div class="seal" aria-hidden="true"></div>
+      <div class="credit" id="credit"></div>
+      <div class="seal" id="seal" aria-hidden="true"></div>
     </div>
   </section>
 
@@ -71,6 +71,38 @@
 
 <div class="tip" id="tip" data-page-node-id="UM6le1sP8lPMt4aDyNH6Fa"></div>
 
+<!-- 预览窗格：和右边的设置抽屉对称，从左边滑出。
+     它显示的是"改动后"，主区域保持"改动前"，两边并排一眼看出差别 -->
+<aside class="preview" id="preview">
+  <div class="phead">
+    <span>改动后（预览）</span>
+    <button class="ghost" id="btnZoom"
+      data-tip="把预览铺满设置窗口以外的整块屏幕。&#10;长对联、长条幅用它看全；再点一次还原。">放大</button>
+  </div>
+  <div class="pbody" id="pbody">
+    <div class="pcol before" id="paneBefore">
+      <div class="plabel">改动前（现在这样）</div>
+      <div class="paper" id="beforePaper">
+        <div class="strip" id="beforeStrip"></div>
+        <div class="credit" id="beforeCredit"></div>
+        <div class="seal" aria-hidden="true"></div>
+      </div>
+    </div>
+    <div class="pcol after">
+      <div class="plabel">改动后（应用之后）</div>
+      <div class="paper" id="previewPaper">
+        <div class="strip" id="previewStrip"></div>
+        <div class="credit" id="previewCredit"></div>
+        <div class="seal" id="previewSeal" aria-hidden="true"></div>
+      </div>
+    </div>
+  </div>
+  <div class="pfoot">
+    <span id="previewState"></span>
+    <span class="pn">这里就是导出 PNG 的样子</span>
+  </div>
+</aside>
+
 <div class="history-mask" id="historyMask"></div>
 <aside class="history-panel" id="historyPanel">
   <div class="hhead">
@@ -78,6 +110,77 @@
     <button class="ghost" id="historyClose">关闭</button>
   </div>
   <div class="hlist" id="historyList"></div>
+</aside>
+
+<!-- 集字调整：抽屉从右侧滑出，目录在右、窗格向左展开 -->
+<div class="drawer-mask" id="drawerMask"></div>
+<aside class="drawer" id="drawer">
+  <div class="dhead">
+    <span>集字调整</span>
+    <button class="ghost" id="drawerClose">收起</button>
+  </div>
+  <div class="dbody">
+    <div class="dpanes" id="dpanes">
+
+      <section class="dpane" data-key="style">
+        <h3 class="dtitle">底本</h3>
+        <div class="seg" id="bookSeg"></div>
+        <div class="bkinfo" id="bookInfo"></div>
+
+        <h3 class="dtitle">排版</h3>
+        <div class="seg" id="segLayout">
+          <button class="segbtn" data-v="条幅" id="btnLayout"
+            data-tip="单列竖排，从上往下一路写下来。&#10;最常见的条幅形式。">条幅</button>
+          <button class="segbtn" data-v="对联"
+            data-tip="两列并排。输入时用空格分隔上下联，&#10;如「上善若水 道法自然」——右边那一列是上联。">对联</button>
+        </div>
+
+        <h3 class="dtitle">字色</h3>
+        <div class="seg" id="segInk">
+          <button class="segbtn" data-v="ink" id="btnInk"
+            data-tip="碑刻最常见的样子：宣纸底、墨色字。">墨色</button>
+          <button class="segbtn" data-v="red"
+            data-tip="朱砂拓。古人用朱砂捶碑，多用于初拓、&#10;或为区别不同拓本。&#10;同一张字形图换的填充色，没有额外存图。">朱砂</button>
+          <button class="segbtn" data-v="rub"
+            data-tip="碑帖拓片本来的样子：黑底白字。&#10;整幅翻转得到的观感，不是另存一份原照片&#10;——那样体积要翻倍。">原图</button>
+        </div>
+        <p class="dnote">三种字色共用同一张字形图，只是换填充色或整幅反色，所以不额外占任何体积。</p>
+
+        <h3 class="dtitle">落款与印章</h3>
+        <div class="seg" id="segTail">
+          <button class="segbtn" data-v="credit"
+            data-tip="纸左下角那一行小字（碑名·作者·集了哪句·共几字）。&#10;关掉就是一张纯粹的字幅。">落款</button>
+          <button class="segbtn" data-v="seal"
+            data-tip="右下角那枚朱砂印。默认的是程序画的「集字」印，&#10;也可以换成你自己的。">印章</button>
+        </div>
+        <div class="sealbox">
+          <div class="sealprev">
+            <i id="sealPrevImg" class="empty"></i>
+            <span id="sealPrevTxt">默认「集字」印</span>
+          </div>
+          <div class="sealact">
+            <button class="ghost" id="btnSeal"
+              data-tip="选一张自己的印章图片。&#10;我在本机把白底去掉、缩到 160px 存起来——&#10;不联网、不上传任何东西。">更换印章…</button>
+            <button class="ghost" id="btnSealReset"
+              data-tip="丢掉自己上传的那枚，用回默认的「集字」印。">用回默认</button>
+            <input type="file" id="sealFile" accept="image/png,image/jpeg,image/webp,bmp" hidden>
+          </div>
+          <label class="sld">去白底强度
+            <input type="range" id="sealThr" min="150" max="250" value="235">
+          </label>
+          <p class="dnote" id="sealNote">截图/扫描件底色常常不是纯白。盖上去还带着白方块，就把强度调低一点（更狠地去白）。</p>
+        </div>
+      </section>
+
+    </div>
+    <nav class="dmenu" id="dmenu"></nav>
+  </div>
+  <div class="dfoot">
+    <button class="primary" id="btnApply">应用改动</button>
+    <button class="ghost" id="btnCancel"
+      data-tip="丢掉这次没应用的改动，回到打开面板时的样子。">放弃</button>
+    <span class="dfnote" id="dfnote"></span>
+  </div>
 </aside>
 
 <script src="data.js"></script>

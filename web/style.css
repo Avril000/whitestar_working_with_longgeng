@@ -4,6 +4,22 @@
 
 * { box-sizing: border-box; }
 
+/* 三种样式：墨色 / 朱砂 / 原图（拓片观感）
+   前两个共用同一张字形图，只换 --ink；原图是整幅反色。
+   三者存储开销都为 0 —— 字形图是「透明底 + 单色墨」，颜色可以事后给。 */
+/* 字色只作用在"纸"这一层，不放在 body 上。
+   为什么：预览窗格也是 body 的后代。字色放 body 上时，主区域应用过的颜色会
+   顺着 CSS 继承渗进预览（--ink 是继承属性），而 .paper 反色规则也会命中预览那张纸，
+   于是出现"选墨色没变化""选朱砂变成黑底蓝字"这类叠加怪象。
+   放在 .paper 上，主区域和预览各管各的，谁也不影响谁。 */
+/* 版本选择面板也跟着上色：挑写法的时候，看到的颜色得和主区域一致，
+   不然朱砂模式下点开面板全是黑字，等于一边挑一边骗自己。 */
+.paper.ink-red, .versions.ink-red { --ink: #B23A30; }
+
+/* 原图：碑帖拓片本来就是黑底白字，整张翻转就是这个观感 */
+.paper.ink-rub, .versions.ink-rub { filter: invert(1); }
+.paper.ink-rub .seal { filter: invert(1); }
+
 body {
   margin: 0;
   background: #F5F1E8;
@@ -49,7 +65,12 @@ button {
 
 .primary:hover { background: #333; }
 
-main { max-width: 880px; margin: 0 auto; padding: 28px; }
+main { max-width: 880px; margin: 0 auto; padding: 28px; transition: padding-left 0.22s ease; }
+
+/* 预览窗格滑出来时，把主内容往右推——不能盖住，否则"改动前"就看不见了 */
+body.previewing { --pw: min(400px, 30vw); }
+body.previewing.zoomed { --pw: calc(100vw - 470px); }
+body.previewing main { padding-left: var(--pw); }
 
 .row { display: flex; gap: 10px; align-items: center; }
 
@@ -64,13 +85,6 @@ main { max-width: 880px; margin: 0 auto; padding: 28px; }
   border-radius: 6px;
 }
 
-.intro {
-  margin: 14px 0 0;
-  font-size: 13px;
-  color: #6B6659;
-  line-height: 1.9;
-}
-
 .stage { display: flex; justify-content: center; margin: 30px 0; }
 
 .paper {
@@ -80,6 +94,16 @@ main { max-width: 880px; margin: 0 auto; padding: 28px; }
   box-shadow: 0 2px 14px rgba(90, 80, 60, 0.08);
   padding: 34px 44px;
   min-width: 190px;
+}
+
+/* 落款：纸左下角那一行小字，和导出 PNG 里是同一句 */
+.credit {
+  margin-top: 22px;
+  font-size: 11px;
+  line-height: 1.7;
+  color: #8A8474;
+  max-width: 62%;
+  letter-spacing: 0;
 }
 
 /* 页面印章：盖在纸的右下角 */
@@ -100,8 +124,14 @@ main { max-width: 880px; margin: 0 auto; padding: 28px; }
   padding-top: 3px;
   opacity: 0.92;
   user-select: none;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
 }
 .seal::before { content: "集字"; }
+
+/* 换成自己上传的那枚后，就别再画「集字」两个字了 */
+.seal.custom::before { content: ""; }
 
 .strip {
   display: flex;
@@ -136,11 +166,36 @@ main { max-width: 880px; margin: 0 auto; padding: 28px; }
   cursor: default;
 }
 
-/* 原帖字：真实拓本图，占满格子 */
+/* 原帖字：真实拓本图，占满格子
+
+   字形图是「透明底 + 单色墨」，所以颜色可以随时换掉：
+   把图当遮罩，颜色由 --ink 给。朱砂、墨色共用同一张图，
+   不必各存一份 —— 三种样式的体积开销都是 0。
+   （img 元素保留在 DOM 里只是为了让自检能查到，显示交给下面的 ::before） */
 .glyph img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.glyph::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--ink, #1A1A1A);
+  -webkit-mask-image: var(--gimg);
+  mask-image: var(--gimg);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
   pointer-events: none;
 }
 
@@ -290,10 +345,33 @@ main { max-width: 880px; margin: 0 auto; padding: 28px; }
   box-shadow: 0 0 0 2px rgba(74, 122, 90, 0.18);
 }
 
+/* 缩略图和主区域的字格走同一套做法：把字形图当遮罩，颜色由 --ink 给。
+   这样朱砂模式下挑写法，面板里看到的也是朱砂，不是原帖的墨色。
+   （img 留在 DOM 里只是为了让自检能查到，显示交给下面的 ::before） */
 .vitem img {
   width: 100%;
   height: 58px;
   object-fit: contain;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+.vitem::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 6px;
+  height: 58px;
+  background-color: var(--ink, #1A1A1A);
+  -webkit-mask-image: var(--gimg);
+  mask-image: var(--gimg);
+  -webkit-mask-size: contain;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
   pointer-events: none;
 }
 
@@ -424,7 +502,7 @@ main { max-width: 880px; margin: 0 auto; padding: 28px; }
   line-height: 1.9;
   border-radius: 6px;
   white-space: pre-line;
-  z-index: 30;
+  z-index: 80;   /* 浮在最上面：抽屉和预览窗格里都要看得见 */
 }
 
 .tip.show { display: block; }
@@ -520,3 +598,417 @@ main { max-width: 880px; margin: 0 auto; padding: 28px; }
   font-size: 13px;
   line-height: 2;
 }
+
+/* ---------- 预览窗格（改动后） ----------
+   和右边的设置抽屉左右对称：设置从右滑出，预览从左滑出。
+   主区域保持"改动前"，两边并排一眼看出差别。 */
+
+.preview {
+  position: fixed;
+  top: 0;
+  left: calc(-1 * var(--pw, 400px));
+  width: var(--pw, 400px);
+  height: 100%;
+  background: #F3EFE4;
+  border-right: 1px solid #E0DACB;
+  box-shadow: 6px 0 24px rgba(90, 80, 60, 0.14);
+  transition: left 0.22s ease, width 0.22s ease;
+  /* 65 = 压在遮罩（60）之上、抽屉（70）之下：
+     这样预览区还能滚动、还能点，长对联才看得全 */
+  z-index: 65;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview.open { left: 0; }
+
+.phead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid #E0DACB;
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: #6B6659;
+}
+
+.phead .ghost { padding: 5px 12px; font-size: 13px; }
+.phead .ghost.on { background: #1A1A1A; color: #F5F1E8; border-color: #1A1A1A; }
+
+/* 预览区可滚动：长对联也能整幅看完 */
+.pbody {
+  flex: 1;
+  overflow: auto;
+  padding: 20px 16px;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+.pcol { display: flex; flex-direction: column; gap: 8px; }
+.pcol .paper { padding: 26px 30px; flex-shrink: 0; }
+
+/* 平时只显示"改动后"——"改动前"就是主区域本身，不用重复摆一遍 */
+.pcol.before { display: none; }
+
+.plabel {
+  display: none;
+  font-size: 12px;
+  letter-spacing: 2px;
+  color: #6B6659;
+  padding-left: 2px;
+}
+
+/* 放大：预览铺满设置窗口以外的整块屏幕，左右两栏并排，各自能滚动 */
+.pbody.side { gap: 24px; }
+
+.pbody.side .pcol.before { display: flex; }
+.pbody.side .plabel { display: block; }
+
+/* 放大后预览占满了，主内容缩回原位（它在预览底下，此时以两栏对比为准） */
+body.previewing.zoomed main { padding-left: 0; }
+
+.pfoot {
+  padding: 10px 16px;
+  border-top: 1px solid #E0DACB;
+  font-size: 12px;
+  color: #6B6659;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.pfoot .pn { font-size: 11px; color: #9A948A; }
+
+/* ---------- 集字调整抽屉 ----------
+   从右边滑出。目录竖排在抽屉最右侧，点一项，窗格朝左边展开。 */
+
+.drawer-mask {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 26, 26, 0.35);
+  z-index: 60;
+}
+
+.drawer-mask.open { display: block; }
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: -470px;
+  width: 450px;
+  max-width: 94vw;
+  height: 100%;
+  background: #FBF9F3;
+  border-left: 1px solid #E0DACB;
+  box-shadow: -6px 0 24px rgba(90, 80, 60, 0.18);
+  transition: right 0.22s ease;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer.open { right: 0; }
+
+.dhead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid #E0DACB;
+  font-size: 15px;
+  letter-spacing: 2px;
+}
+
+.dbody { flex: 1; display: flex; min-height: 0; }
+
+/* 窗格区在左，目录在右——所以 "on" 的标记画在目录项的左边缘，指向窗格 */
+.dpanes {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 16px 18px 28px;
+}
+
+.dmenu {
+  width: 100px;
+  flex-shrink: 0;
+  border-left: 1px solid #EAE5D6;
+  background: #F6F2E7;
+  padding: 8px 0;
+  overflow-y: auto;
+}
+
+.dmi {
+  display: block;
+  width: 100%;
+  text-align: right;
+  padding: 12px 14px;
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  font-family: inherit;
+  font-size: 14px;
+  letter-spacing: 2px;
+  color: #6B6659;
+}
+
+.dmi:hover { background: #FFFDF7; color: #1A1A1A; }
+
+.dmi.on {
+  background: #FFFDF7;
+  color: #1A1A1A;
+  font-weight: bold;
+  border-left-color: #9E3D32;
+}
+
+/* 排好队还没开工的：灰着，但点得开，说明里写清楚轮到第几项 */
+.dmi.todo { color: #B4AEA0; }
+.dmi.todo.on { color: #8A8474; border-left-color: #D8D2C2; }
+
+.dpane { display: none; }
+
+/* 窗格从右边滑向左边展开 */
+.dpane.on {
+  display: block;
+  animation: dslide 0.2s ease;
+}
+
+@keyframes dslide {
+  from { opacity: 0; transform: translateX(22px); }
+  to { opacity: 1; transform: none; }
+}
+
+.dtitle {
+  margin: 22px 0 10px;
+  padding-bottom: 6px;
+  font-size: 13px;
+  font-weight: normal;
+  letter-spacing: 3px;
+  color: #6B6659;
+  border-bottom: 1px solid #EAE5D6;
+}
+
+.dtitle:first-child { margin-top: 0; }
+
+.dnote {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.9;
+  color: #8A8474;
+  white-space: pre-line;
+}
+
+/* 分段选择：排版 / 字色，点哪个用哪个 */
+.seg { display: flex; gap: 8px; }
+
+.segbtn {
+  flex: 1;
+  padding: 9px 6px;
+  font-size: 14px;
+  letter-spacing: 1px;
+  background: #FBF9F3;
+  border: 1px solid #D8D2C2;
+  color: #1A1A1A;
+}
+
+.segbtn:hover { background: #FFFDF7; }
+
+.segbtn.on {
+  background: #1A1A1A;
+  color: #F5F1E8;
+  border-color: #1A1A1A;
+}
+
+/* 登了记但还没录字的碑：灰着，点不动，按钮名上直接写明 */
+.segbtn.off {
+  cursor: help;
+  background: #F2EEE4;
+  color: #A8A293;
+  border-style: dashed;
+}
+
+.segbtn.off:hover { background: #F2EEE4; }
+
+/* 抽屉底部的操作栏：改动不实时生效，所以要有"应用 / 放弃"这一步 */
+.dfoot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 18px;
+  border-top: 1px solid #E0DACB;
+  background: #F6F2E7;
+}
+
+.dfoot .primary, .dfoot .ghost { padding: 8px 18px; font-size: 14px; }
+
+/* 有改动没应用时，【应用改动】闪一下朱砂边，别让人以为改了没反应 */
+.dfoot .primary.attn { box-shadow: 0 0 0 2px rgba(158, 61, 50, 0.35); }
+
+.dfnote { font-size: 12px; color: #9A948A; }
+.dfnote.on { color: #9E3D32; }
+
+/* 【集字调整】按钮上有未应用的改动时，右上角点一个朱砂小点 */
+.pick.dirty { position: relative; }
+.pick.dirty::after {
+  content: '';
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #9E3D32;
+}
+
+/* ---------- 碑本详情格 ----------
+   两块碑各摆一张大卡太占地方，详情只需要看选中的那块，所以拆成"按钮 + 格子" */
+
+.bkinfo {
+  margin-top: 10px;
+  padding: 12px 14px;
+  border: 1px solid #EAE5D6;
+  border-radius: 8px;
+  background: #FBF9F3;
+}
+
+.ir { display: flex; gap: 10px; font-size: 12px; line-height: 2; }
+
+.ik { flex: 0 0 34px; color: #9A948A; letter-spacing: 1px; }
+.iv { color: #4A463C; flex: 1; }
+
+.idesc {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #EAE5D6;
+  font-size: 12px;
+  line-height: 1.9;
+  color: #6B6659;
+}
+
+/* ---------- 印章 ---------- */
+
+.sealbox {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border: 1px solid #EAE5D6;
+  border-radius: 8px;
+  background: #FBF9F3;
+}
+
+.sealprev {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+/* 印章预览：没上传时显示"集"字示意，上传后显示真图 */
+.sealprev i {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 4px;
+  background: #A84438;
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  position: relative;
+}
+
+.sealprev i.empty::after {
+  content: '集';
+  position: absolute;
+  inset: 0;
+  color: #FBF9F3;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sealprev span { font-size: 12px; color: #6B6659; }
+
+.sealact { display: flex; gap: 8px; }
+.sealact .ghost { padding: 6px 12px; font-size: 13px; }
+
+.sld {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #6B6659;
+}
+
+.sld input { flex: 1; accent-color: #9E3D32; }
+
+/* 碑本卡片：作者、年代、馆藏、简介都安家在这里 */
+.booklist { display: flex; flex-direction: column; gap: 10px; }
+
+.bookcard {
+  padding: 12px 14px;
+  border: 1px solid #EAE5D6;
+  border-radius: 8px;
+  background: #FFFDF7;
+  cursor: pointer;
+  transition: border-color 0.12s, background 0.12s;
+}
+
+.bookcard:hover { border-color: #D8D2C2; background: #FBF7EC; }
+
+.bookcard.on {
+  border-color: #9E3D32;
+  background: #FCF4F1;
+  box-shadow: 0 0 0 2px rgba(158, 61, 50, 0.12);
+}
+
+/* 登记了但没录字的碑：灰着摆出来，写清为什么不能用 */
+.bookcard.off {
+  cursor: help;
+  background: #FAF8F3;
+  opacity: 0.62;
+}
+
+.bookcard.off:hover { border-color: #EAE5D6; background: #FAF8F3; }
+
+.bkname { font-size: 16px; letter-spacing: 2px; }
+
+.bkage {
+  float: right;
+  font-size: 11px;
+  letter-spacing: 0;
+  color: #9A948A;
+  font-weight: normal;
+}
+
+.bkmeta { margin-top: 4px; font-size: 12px; color: #6B6659; }
+.bkhold { margin-top: 2px; font-size: 11px; color: #9A948A; }
+
+.bkdesc {
+  margin-top: 8px;
+  font-size: 12px;
+  line-height: 1.9;
+  color: #6B6659;
+}
+
+.bkwait {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #B07A2A;
+}
+
+.bksrc {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #9E3D32;
+  text-decoration: none;
+  border-bottom: 1px dashed #C9A79F;
+  padding-bottom: 1px;
+}
+
+.bksrc:hover { border-bottom-style: solid; }
