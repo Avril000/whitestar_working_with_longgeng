@@ -985,6 +985,12 @@ function exportPNG() {
 
     // 逐段逐字画。竖排时第 0 段在最右（对联右为上联），横排时第 0 段在最上
     var credits = [];
+    /* ⚠️ 下面这两类**标记**不许在这里画，要留到反色之后补（见 paintDecor）：
+       原碑模式是整幅反色，朱砂被反过去就是青蓝——界行、版框、借字框早就栽过，
+       朱笔和缺字框是同一类（它们着色是"标记"，不是字形本身），
+       所以一起收进队列，交给 paintDecor 在反色之后画。 */
+    var missJobs = [];    // 缺字的空格：虚线框 + 「缺」字
+    var brushJobs = [];   // 朱笔标出来的字
     cols.forEach(function (part, ci) {
       for (var j = 0; j < part.length; j++) {
         var cell = grid[ci][j];
@@ -996,29 +1002,18 @@ function exportPNG() {
         var im = r.gid ? imgs[r.gid] : null;
 
         if (!im) {
-          // 缺字：虚线空格
-          ctx.save();
-          ctx.strokeStyle = '#C9C3B5';
-          ctx.setLineDash([6, 5]);
-          ctx.strokeRect(x + 6, cy + 6, SIZE - 12, SIZE - 12);
-          ctx.setLineDash([]);
-          ctx.fillStyle = '#B4AEA0';
-          ctx.font = '20px "Songti SC", SimSun, serif';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'middle';
-          ctx.fillText('缺', x + SIZE / 2, cy + SIZE / 2 - 8);
-          ctx.font = '14px "Songti SC", SimSun, serif';
-          ctx.fillText(ch, x + SIZE / 2, cy + SIZE / 2 + 16);
-          ctx.restore();
+          // 缺字：虚线空格。交给 paintDecor 在反色之后画（标记不能被反色）
+          missJobs.push({ x: x, y: cy, ch: ch });
           credits.push('「' + ch + '」库中没有，留空未补');
           continue;
         }
 
-        /* 上色顺序：朱笔（逐字）→ 全局字色（整幅）→ 原色。
-           朱笔最优先——它是"这一个字被标出来了"，得压过整幅统一的颜色。
-           颜色取法和屏幕上一个函数（brushInk），所以两边必然一致。 */
+        /* 朱笔：逐字染朱砂标重点。它压过整幅统一的颜色，
+           但**不在这里画**——原碑模式整幅反色会把朱砂反成青蓝，
+           所以收进队列，和界行、版框一起在反色之后补（见 paintDecor）。
+           颜色取法和屏幕上是同一个函数（brushInk），两边必然一致。 */
         if (state.brushOn && isBrushed(ch, cell.idx, state.book)) {
-          ctx.drawImage(tintImage(im, brushInk(state.ink)), x, cy, SIZE, SIZE);
+          brushJobs.push({ im: im, x: x, y: cy });
         } else if (state.ink === 'red') {
           // 朱砂：同一张字形图，换成朱砂色再画（屏幕上也是这么做的）
           ctx.drawImage(tintImage(im, '#B23A30'), x, cy, SIZE, SIZE);
@@ -1045,6 +1040,36 @@ function exportPNG() {
       var ruleColor = state.ruleColor === 'ink' ?
         'rgba(58, 54, 48, 0.55)' : 'rgba(158, 61, 50, 0.55)';
       var ruleW = state.ruleWidth === '细' ? 1 : (state.ruleWidth === '粗' ? 3 : 2);
+
+      /* 缺字的空格：虚线框和「缺」字也是**标记**（灰的），
+         反色后会变成深蓝灰，在黑纸上几乎看不见——所以和界行一样排在反色之后画。 */
+      missJobs.forEach(function (m) {
+        ctx.save();
+        ctx.strokeStyle = '#C9C3B5';
+        ctx.setLineDash([6, 5]);
+        ctx.strokeRect(m.x + 6, m.y + 6, SIZE - 12, SIZE - 12);
+        ctx.setLineDash([]);
+        ctx.fillStyle = '#B4AEA0';
+        ctx.font = '20px "Songti SC", SimSun, serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('缺', m.x + SIZE / 2, m.y + SIZE / 2 - 8);
+        ctx.font = '14px "Songti SC", SimSun, serif';
+        ctx.fillText(m.ch, m.x + SIZE / 2, m.y + SIZE / 2 + 16);
+        ctx.restore();
+      });
+
+      /* 朱笔：逐字染朱砂标重点。
+         ⚠️ 它虽然是"字"，但着色是**标记**性质——原碑模式整幅反色会把朱砂反成青蓝
+         （白星 2026-10-25 深夜报的：原碑 + 朱笔，导出的 PNG 里蓝色又回来了）。
+         所以在这里、也就是反色**之后**画，朱砂才是朱砂。
+         画在遮罩之前：遮罩辅助线压在字上，屏幕上是同一个层级（见 .glyph::after）。 */
+      if (state.brushOn) {
+        var bcol = brushInk(state.ink);
+        brushJobs.forEach(function (b) {
+          ctx.drawImage(tintImage(b.im, bcol), b.x, b.y, SIZE, SIZE);
+        });
+      }
 
       /* 界行：竖排→每段左右各一条竖线，横排→每段上下各一条横线。
          一律贯穿整幅（取字区的并集范围），和屏幕上同一套规矩。 */

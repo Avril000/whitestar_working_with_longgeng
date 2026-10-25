@@ -870,6 +870,26 @@ try {
   console.log(e.stack.split('\n').slice(0, 4).join('\n'));
 }
 
+/* 原碑模式在导出里是**整幅反色**，凡是"标记"（朱砂的、灰的）画在反色之前就会被反成青蓝。
+   这一天已经栽了五次——版框 / 界行 / 印章 / 版本角标 / 朱笔 / 缺字框，全是同一个根因。
+   所以这里立的不是"朱笔修好了"，而是"以后再加任何标记，也不许画在反色之前"。 */
+const PD = appJs.indexOf('function paintDecor()');
+const PS = appJs.indexOf('function paintSeal()');
+const DIFF = appJs.indexOf("globalCompositeOperation = 'difference'");
+const CALL = appJs.lastIndexOf('paintDecor();');
+check('反色发生在补画之前（paintDecor / paintSeal 排在反色之后）',
+  DIFF > 0 && CALL > DIFF && PD > 0 && PS > PD);
+check('朱笔的字排在反色之后画（反色前画，原碑模式会把朱砂反成青蓝）',
+  appJs.indexOf('brushJobs.forEach') > PD && appJs.indexOf('brushJobs.forEach') < PS);
+check('缺字的虚线框也排在反色之后（灰的被反成深蓝灰，黑纸上看不见）',
+  appJs.indexOf('missJobs.forEach') > PD && appJs.indexOf('missJobs.forEach') < PS);
+check('字循环里朱笔只登记、不落笔（落笔交给 paintDecor，反色之后）',
+  /isBrushed\(ch, cell\.idx, state\.book\)\) \{\s*brushJobs\.push/.test(appJs) &&
+  !/isBrushed[\s\S]{0,60}tintImage/.test(appJs));
+check('字循环里缺字也只登记、不落笔（虚线框交给 paintDecor）',
+  /if \(!im\) \{[\s\S]{0,160}missJobs\.push/.test(appJs) &&
+  !/missJobs\.push[\s\S]{0,60}strokeRect/.test(appJs));
+
 // 朱笔的颜色：字形图是遮罩，颜色由 --ink 给，所以换 --ink 就够了，不用另存图
 check('朱笔只换这一格的 --ink（不另存图、不重画）', /\.glyph\.brushed \{ --ink:/.test(css));
 check('整幅已是朱砂时，朱笔反过来染墨色（不然满纸皆红看不出标了哪个）',
