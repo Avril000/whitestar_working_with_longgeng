@@ -109,7 +109,13 @@ body.previewing main { padding-left: var(--pw); }
   background: #FBF9F3;
   border: 1px solid #E0DACB;
   box-shadow: 0 2px 14px rgba(90, 80, 60, 0.08);
-  /* 页边距参数化：外框和（下一项的）页边距都从这里取值，改一处即可 */
+  /* 间距参数化：字距 / 行距 / 页边距，都由【间距】面板给，改一处即可。
+     ⚠️ 这三个变量**必须定义在 .paper 上**，不能定义在 .strip 上——
+     面板是把值写在纸上的（主区域和预览各管各的），写在 strip 上会把它自己的默认值
+     盖住继承来的值，滑杆就永远调不动（白星 2026-10-25 报的"只有页边距有变化"）。 */
+  --gh: 76px;    /* 字格边长 */
+  --gg: 8px;     /* 字距：字与字之间 */
+  --gr: 34px;    /* 行距：列与列（竖排）/ 行与行（横排）*/
   --ppad-y: 34px;
   --ppad-x: 44px;
   padding: var(--ppad-y) var(--ppad-x);
@@ -162,18 +168,23 @@ body.previewing main { padding-left: var(--pw); }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--gg);
-  /* 字格边长和格间距参数化：横界那条贯穿线要用它们算位置 */
-  --gh: 76px;
-  --gg: 8px;
+  gap: var(--gr);   /* 列与列 / 行与行，统称「行距」 */
+  /* ⚠️ --gh / --gg / --gr 的默认值定义在 .paper 上（见那里），这里不要再定义一遍：
+     定义在这层会盖掉从纸继承下来的值，【间距】的滑杆就调不动了。 */
 }
 
-/* 对联：右为上联（第一列排右边），两列并排 */
+/* 对联：右为上联（第一列排右边），两列并排。列间距就是【间距】里的「行距」 */
 .strip.duilian {
   flex-direction: row-reverse;
   align-items: flex-start;
-  gap: 34px;
+  gap: var(--gr, 34px);
 }
+
+/* 横排：字从右到左成行，行序从上到下（传统竖排的读法调个个儿）。
+   strip 本身不用改（本来就是 column = 行从上到下），
+   只要把每一段内部从「竖着排」改成「横着排、从右往左」就行。
+   ⚠️ 横排时不加 .duilian——那会把 strip 掰成 row-reverse，段就横着排了，不对。 */
+.strip.heng .col { flex-direction: row-reverse; }
 
 .col {
   display: flex;
@@ -194,23 +205,9 @@ body.previewing main { padding-left: var(--pw); }
      才能单独反向反色抵消（和 .pframe、.seal 一个办法）。 */
 }
 
-/* 横界：一整条线**贯穿**所有列（珍宝馆的界行就是这样的，不是一段一段的）。
-   线由 JS 插进 strip 里，宽度撑满，位置按行号算：第 i 行下方 = i*(字高+间距) + 字高 + 间距/2 */
-.strip.ruled.ruled-h .col {
-  padding: 0;
-  border-left: none;
-  border-right: none;
-}
-
-.rule-h {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: var(--rule-w, 1px);
-  background: var(--rule, rgba(158, 61, 50, 0.55));
-  top: calc(var(--i) * (var(--gh) + var(--gg)) + var(--gh) + var(--gg) / 2);
-  pointer-events: none;
-}
+/* 界行线本身（竖排是竖线、横排是横线）都是 JS 画的 .rule-v 独立元素，
+   按字列的实际盒子定位、贯穿整幅——见下面 .rule-v。
+   （以前横界是这里的 .rule-h，按行号用 CSS 算位置；现在两个方向统一走 JS 一套算法。） */
 
 /* 竖界：每列左右各一条，位置由 JS 按字列的实际盒子给（和版框同一套量法） */
 .rule-v {
@@ -914,6 +911,28 @@ body.previewing.zoomed main { padding-left: 0; }
   line-height: 1.9;
   color: #8A8474;
   white-space: pre-line;
+}
+
+/* 间距滑杆：左边拖，右边实时显示当前值 */
+.slide {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 2px 0 4px;
+}
+
+.slide input[type="range"] {
+  flex: 1;
+  accent-color: #9E3D32;
+  cursor: pointer;
+}
+
+.sval {
+  min-width: 54px;
+  text-align: right;
+  font-size: 12px;
+  color: #6B6659;
+  font-variant-numeric: tabular-nums;
 }
 
 /* 分段选择：排版 / 字色，点哪个用哪个 */

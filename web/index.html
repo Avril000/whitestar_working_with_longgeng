@@ -174,22 +174,27 @@
       </section>
 
       <section class="dpane" data-key="album">
+        <h3 class="dtitle">排列方向</h3>
+        <div class="seg" id="segRuleDir">
+          <button class="segbtn" data-v="竖"
+            data-tip="竖排：字从上到下写成一列，列序从右到左——&#10;传统碑刻就是这么读的（「上下竖写，由右及左」）。&#10;界行配竖线（乌丝栏，用来分列）。">竖排（成列）</button>
+          <button class="segbtn" data-v="横"
+            data-tip="横排：字从右到左写成一行，行序从上到下。&#10;界行配横线（用来分行）。&#10;注意：界行是「行与行之间的分界线」，必然和字的走向垂直——&#10;所以竖排只能配竖线、横排只能配横线，不能混着来。">横排（成行）</button>
+        </div>
+        <p class="dnote">这一项管的是字怎么排，不是界行线怎么画——线的方向由它推导。
+⚠️ 竖排里「行」和「字」的方向跟横排是反的：
+字距是上下方向（同一列里字与字），行距是左右方向（列与列）。
+这是竖排的读法决定的，跟我们平时横着写字的直觉正好相反。</p>
+
         <h3 class="dtitle">界行</h3>
         <div class="seg" id="segRuled">
           <button class="segbtn" data-v="on"
-            data-tip="画上界行：册页上用来分割字列的细线，也叫乌丝栏。&#10;它是叠在排版之上的一层——条幅和对联都能叠。">开</button>
+            data-tip="画上界行：行与行之间的分界线，&#10;朱色叫朱丝栏、墨色叫乌丝栏。&#10;线的方向跟着上面的排列方向走，都是整条贯穿的。">开</button>
           <button class="segbtn" data-v="off"
             data-tip="不画界行，只留字。">关</button>
         </div>
-        <p class="dnote">界行是叠在排版之上的一层，不是第三种排版模式——条幅、对联都能开。</p>
-
-        <h3 class="dtitle">方向</h3>
-        <div class="seg" id="segRuleDir">
-          <button class="segbtn" data-v="竖"
-            data-tip="竖界（乌丝栏）：每一列左右各一条竖线。&#10;碑帖册页最常见的样子。">竖（分列）</button>
-          <button class="segbtn" data-v="横"
-            data-tip="横界：每一「行」下方一条横线。&#10;竖排时，第 j 行就是各列的第 j 个字。">横（分行）</button>
-        </div>
+        <p class="dnote">界行线的方向由排列方向决定：竖排画竖线（分列），横排画横线（分行）。
+都是贯穿整幅的一整条，不是一段一段的（珍宝馆的界行就是贯穿的）。</p>
 
         <h3 class="dtitle">颜色</h3>
         <div class="seg" id="segRuleColor">
@@ -219,6 +224,44 @@
             data-tip="不画外框，只留界行（或什么都不留）。">关</button>
         </div>
         <p class="dnote">框画在页边距上，所以下一项【间距】调页边距时，框会跟着一起动。</p>
+      </section>
+
+      <section class="dpane" data-key="space">
+        <h3 class="dtitle">整体松紧</h3>
+        <div class="seg" id="segPreset">
+          <button class="segbtn" data-v="紧"
+            data-tip="字挤、行密、留白窄。&#10;字多的时候用这个，一幅放得下。">紧凑</button>
+          <button class="segbtn" data-v="中"
+            data-tip="默认值。字距 8、行距 34、页边距 34。">适中</button>
+          <button class="segbtn" data-v="疏"
+            data-tip="字疏、行宽、留白多。&#10;字少的时候用这个，显得从容。">疏朗</button>
+        </div>
+        <p class="dnote">三档预设一次设好三项；下面三个滑杆可以再单独微调，
+改完照旧点【应用改动】才落到主区域。</p>
+
+        <h3 class="dtitle">字距</h3>
+        <div class="slide">
+          <input type="range" id="rngGap" min="0" max="24" step="1"
+            data-tip="同一列里，字与字之间的距离。&#10;挤紧了像摩崖，放开一点像册页。">
+          <span class="sval" id="valGap"></span>
+        </div>
+
+        <h3 class="dtitle">行距</h3>
+        <div class="slide">
+          <input type="range" id="rngRow" min="10" max="64" step="2"
+            data-tip="列与列之间的距离。&#10;竖排时一「行」就是一竖列，所以行距是横着量的——
+只有对联（两列）时才看得出来。">
+          <span class="sval" id="valRow"></span>
+        </div>
+
+        <h3 class="dtitle">页边距</h3>
+        <div class="slide">
+          <input type="range" id="rngPad" min="12" max="64" step="2"
+            data-tip="纸的四边留白。左右会比上下宽一些，这是竖幅该有的样子。&#10;版框画在页边距上，调这一项框会跟着动。">
+          <span class="sval" id="valPad"></span>
+        </div>
+        <p class="dnote">导出 PNG 用的是同一组值，只按字格大小换算了比例，
+所以屏幕上看到的和拿到的必然一致。</p>
       </section>
 
     </div>

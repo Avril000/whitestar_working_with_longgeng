@@ -37,8 +37,15 @@ var state = {
   // 成册界行（册页上分割字列的细线，也叫乌丝栏）。和条幅/对联是正交的——
   // 它是叠在排版之上的一层，不是第三种排版模式。
   ruled: false, ruleDir: '竖', ruleColor: 'red', ruleWidth: '细',
-  frame: '文武'   // 外框：关 / 单边（细） / 文武（一粗一细，刻本册页最常见的版框）
+  frame: '文武',   // 外框：关 / 单边（细） / 文武（一粗一细，刻本册页最常见的版框）
+  // 间距：字距（列内字与字）、行距（列与列，对联才看得见）、页边距（左右更大些）
+  // 这三个值**屏幕和导出共用**——导出时按字格大小的比例换算，所以两边必然一致
+  gap: 8, rowGap: 34, pad: 34
 };
+
+/* 页边距左右比上下宽一点，这是纸的样子（竖幅左右留白多）。
+   一个滑杆给基准值，横向按这个比例放大——默认 34 → 左右 44，和原来的观感一致。 */
+var PAD_X_RATIO = 1.3;
 var draft = null;
 
 var SEAL_KEY = 'glyph_seal_v1';   // 用户自己上传的印章（dataURL），存本机，不联网
@@ -55,7 +62,7 @@ var sealImage = null;             // null = 用程序画的那枚「集字」朱
 var SECTIONS = [
   { key: 'style', name: '样式', ready: true },
   { key: 'album', name: '成册', ready: true, todo: '成册界行：给整幅加线框——颜色、方向（横竖）、粗细，以及框离首尾字留多远。做成开关，条幅和对联都能叠。' },
-  { key: 'space', name: '间距', ready: false, todo: '行间距、字间距、页边距。每项给三档预设（紧 / 中 / 疏），再留一个微调滑杆。' },
+  { key: 'space', name: '间距', ready: true },
   { key: 'mask', name: '遮罩', ready: false, todo: '单字遮罩：田字格 / 米字格 / 九宫格，勾上就在每个字格上叠一层辅助线，方便对着临。' },
   { key: 'brush', name: '朱笔', ready: false, todo: '朱笔单字：可以按字挑出某几个字染成朱砂，用来标重点。' }
 ];
@@ -333,18 +340,36 @@ function drawDecor(paper, strip, cfg) {
   var boxes = colBoxes(paper, strip);
   if (!boxes.length) return;   // 一个字都没有：不画
 
-  // 竖界：每列左右各一条。以前是画在 .col 的 border 上，
-  // 那样原碑模式整纸反色时会把它一起反成蓝色——改成独立元素才能单独抵消。
-  if (cfg.ruled && cfg.ruleDir === '竖') {
+  /* 界行：竖排→每列左右各一条竖线，横排→每行上下各一条横线。
+     一律**贯穿**整幅（取所有字列的并集范围），珍宝馆的界行就是整条贯穿的，不是一段一段的。
+     线画成独立元素（不挂在 .col 的 border 上），原碑模式整纸反色时才不会把它反成蓝色。 */
+  if (cfg.ruled) {
     var lw = cfg.ruleWidth === '细' ? 1 : (cfg.ruleWidth === '粗' ? 3 : 2);
+    var L0 = null, T0 = null, R0 = null, B0 = null;
     boxes.forEach(function (b) {
-      [b.x, b.x + b.w - lw].forEach(function (lx) {
+      L0 = (L0 === null) ? b.x : Math.min(L0, b.x);
+      T0 = (T0 === null) ? b.y : Math.min(T0, b.y);
+      R0 = (R0 === null) ? (b.x + b.w) : Math.max(R0, b.x + b.w);
+      B0 = (B0 === null) ? (b.y + b.h) : Math.max(B0, b.y + b.h);
+    });
+    var heng = cfg.ruleDir === '横';
+    boxes.forEach(function (b) {
+      var lines = heng ? [b.y, b.y + b.h - lw]      // 横排：这一行的上下各一条
+                       : [b.x, b.x + b.w - lw];     // 竖排：这一列的左右各一条
+      lines.forEach(function (pos) {
         var v = document.createElement('i');
         v.className = 'rule-v';
-        v.style.left = lx + 'px';
-        v.style.top = b.y + 'px';
-        v.style.width = lw + 'px';
-        v.style.height = b.h + 'px';
+        if (heng) {
+          v.style.left = L0 + 'px';
+          v.style.top = pos + 'px';
+          v.style.width = (R0 - L0) + 'px';
+          v.style.height = lw + 'px';
+        } else {
+          v.style.left = pos + 'px';
+          v.style.top = T0 + 'px';
+          v.style.width = lw + 'px';
+          v.style.height = (B0 - T0) + 'px';
+        }
         paper.appendChild(v);
       });
     });
@@ -392,14 +417,21 @@ function renderInto(strip, cfg, opts) {
   var text = raw.replace(/\r?\n/g, ' ').replace(/[ \t]+/g, ' ').trim();
   var cols = buildColumns(text, cfg.layout);
   strip.innerHTML = '';
-  strip.classList.toggle('duilian', cols.length > 1);
+  /* 排列方向——ruleDir 这个字段管的其实是**字怎么排**，不是界行线怎么画：
+     竖排 = 字从上到下成列，列序从右到左（传统碑刻的读法，由右及左）；
+     横排 = 字从右到左成行，行序从上到下。
+     界行线由它推导：界行是「行与行之间的分界线」，必然和字的走向**垂直**——
+     竖排成列就配竖线，横排成行就配横线。（以前是竖排硬配横线，没有意义。）
+     分段逻辑不变：条幅=一整段，对联=按空格分段；只是段是竖着排还是横着排。 */
+  var heng = cfg.ruleDir === '横';
+  strip.classList.toggle('heng', heng);
+  strip.classList.toggle('duilian', !heng && cols.length > 1);
 
-  // 成册界行 + 外框：开关 / 方向 / 颜色 / 粗细，全用 class 和两个 CSS 变量表达。
-  // 变量挂在**纸**上（strip 和框的伪元素都能继承到），主区域和预览各渲染各的，
+  // 成册界行 + 外框：开关 / 颜色 / 粗细，全用 class 和两个 CSS 变量表达。
+  // 变量挂在**纸**上（strip 和框都能继承到），主区域和预览各渲染各的，
   // 所以不会互相污染（和字色、和 ink 同一个道理）。
   var paper = strip.closest ? (strip.closest('.paper') || strip) : strip;
   strip.classList.toggle('ruled', !!cfg.ruled);
-  strip.classList.toggle('ruled-h', cfg.ruleDir === '横');
   paper.classList.toggle('framed', cfg.frame !== '关');
   paper.classList.toggle('framed-double', cfg.frame === '文武');
   // 颜色和导出 PNG 里用的是同一组值（含透明度），屏幕上看到的才和拿到的完全一致
@@ -407,6 +439,12 @@ function renderInto(strip, cfg, opts) {
     'rgba(58, 54, 48, 0.55)' : 'rgba(158, 61, 50, 0.55)');
   paper.style.setProperty('--rule-w',
     cfg.ruleWidth === '细' ? '1px' : (cfg.ruleWidth === '粗' ? '3px' : '2px'));
+  // 间距：字距 / 行距 / 页边距。三个值都挂在纸上——
+  // 横界那条线的位置是按 --gg 算的，版框是按字列位置算的，所以都会自动跟着变。
+  paper.style.setProperty('--gg', num(cfg.gap, 8) + 'px');
+  paper.style.setProperty('--gr', num(cfg.rowGap, 34) + 'px');
+  paper.style.setProperty('--ppad-y', num(cfg.pad, 34) + 'px');
+  paper.style.setProperty('--ppad-x', Math.round(num(cfg.pad, 34) * PAD_X_RATIO) + 'px');
 
   var borrowed = 0;
   var missing = [];
@@ -440,18 +478,8 @@ function renderInto(strip, cfg, opts) {
     strip.appendChild(col);
   });
 
-  // 横界：一整条线**贯穿**所有列（珍宝馆的界行就是贯穿的，不是一段一段的）。
-  // 线撑满 strip 的宽度，位置按行号算，所以对联几列都照样贯穿。
-  if (cfg.ruled && cfg.ruleDir === '横') {
-    var maxRows = 0;
-    cols.forEach(function (p) { if (p.length > maxRows) maxRows = p.length; });
-    for (var r = 0; r < maxRows; r++) {
-      var ln = document.createElement('i');
-      ln.className = 'rule-h';
-      ln.style.setProperty('--i', r);
-      strip.appendChild(ln);
-    }
-  }
+  // 界行线不再在这里插元素——统一交给 drawDecor 按字列的实际盒子画
+  // （竖排画竖线、横排画横线，两条都**贯穿**整幅，不是一段一段的）。
 
   // 同字同形检查：凡是本句出现两次以上的写法都标出来。
   // 自动避复一般不会撞，但手动挑的时候可能挑成一样——收起面板后也得看得见。
@@ -775,8 +803,20 @@ function exportPNG() {
   var cols = buildColumns(text, state.layout);
 
   var SIZE = 160;   // 每格边长
-  var GAP = 18;     // 格间距
-  var PAD = 64;     // 纸边距
+
+  /* 屏幕上的字格是 76px，导出是 160px——**间距一律按这个比例换算**，
+     这样屏幕上看到的松紧、留白、框离字多远，和导出拿到的是同一幅。
+     （以前导出是写死的常量，屏幕和导出的列间距差了一倍，调【间距】就会露馅。） */
+  var K = SIZE / 76;
+  var GAPT = Math.round(num(state.gap, 8) * K);               // 字距（同列内）
+  var ROWG = Math.round(num(state.rowGap, 34) * K);           // 行距（列与列）
+  var PADX = Math.round(num(state.pad, 34) * PAD_X_RATIO * K); // 页边距 · 左右
+  var PADY = Math.round(num(state.pad, 34) * K);               // 页边距 · 上下
+  var OFF = Math.round(8 * K);      // 界行离字的那一点距离
+  var FOUT1 = Math.round(14 * K);   // 版框外圈（粗）离字区多远
+  var FOUT2 = Math.round(8 * K);    // 版框内圈（细）
+  var FLW_T = Math.max(1, Math.round(3 * K));   // 粗线宽
+  var FLW_S = Math.max(1, Math.round(1 * K));   // 细线宽
   // 落款区。以前只有 78，落款正好卡在框线上（被"挤压"）；
   // 现在框只框字区、落款在框外下方，这里要留够"往下退 + 两行字 + 印章"的空间。
   var FOOT = 170;
@@ -785,8 +825,32 @@ function exportPNG() {
   var maxLen = 0;
   cols.forEach(function (c) { if (c.length > maxLen) maxLen = c.length; });
 
-  var W = PAD * 2 + cols.length * SIZE + (cols.length - 1) * GAP * 2;
-  var H = PAD * 2 + maxLen * SIZE + (maxLen - 1) * GAP + FOOT;
+  /* 排列方向：竖排 = 段是竖列（列序从右到左），横排 = 段是横行（行内字从右到左、行序从上到下）。
+     两种方向的差别只是"横竖调个个儿"，所以统一成 nX/nY + gapX/gapY 来算，
+     下面所有坐标都从 cellXY() 出，不用再分两套。 */
+  var heng = state.ruleDir === '横';
+  var nX = heng ? maxLen : cols.length;   // 横着排几个
+  var nY = heng ? cols.length : maxLen;   // 竖着排几个
+  var gapX = heng ? GAPT : ROWG;          // 横向相邻两格的距离
+  var gapY = heng ? ROWG : GAPT;          // 纵向相邻两格的距离
+
+  var W = PADX * 2 + nX * SIZE + (nX - 1) * gapX;
+  var H = PADY * 2 + nY * SIZE + (nY - 1) * gapY + FOOT;
+
+  /* 格子的位置一律从这一个函数出：ix 越大越靠左（从右到左），iy 越大越靠下。
+     ⚠️ 字区、界行、版框的边界都必须由它推导，**不要另外手算**——
+     手算漏过一次 SIZE（写成 (nX-1)*gapX），横排时框直接飞到纸的右边去了。 */
+  function cellAt(ix, iy) {
+    return {
+      x: W - PADX - SIZE - ix * (SIZE + gapX),
+      y: PADY + iy * (SIZE + gapY)
+    };
+  }
+
+  // 第 ci 段里的第 j 个字：横排时"段"是行（纵向序号 = ci），竖排时"段"是列（横向序号 = ci）
+  function cellXY(ci, j) {
+    return heng ? cellAt(j, ci) : cellAt(ci, j);
+  }
 
   // 先按整句数一遍每个字出现到第几次（和屏幕上完全一致，含自动避复），
   // 再把用到的版本图都加载好（按 gid 去重，尊重多版本选择）
@@ -826,15 +890,14 @@ function exportPNG() {
     ctx.fillStyle = '#FBF9F3';
     ctx.fillRect(0, 0, W, H);
 
-    // 每列：对联右为上联（cols[0] 画在最右）
+    // 逐段逐字画。竖排时第 0 段在最右（对联右为上联），横排时第 0 段在最上
     var credits = [];
     cols.forEach(function (part, ci) {
-      var x = W - PAD - SIZE - ci * (SIZE + GAP * 2);
-
       for (var j = 0; j < part.length; j++) {
         var cell = grid[ci][j];
         var ch = cell.ch;
-        var cy = PAD + j * (SIZE + GAP);
+        var pos = cellXY(ci, j);
+        var x = pos.x, cy = pos.y;
         var r = resolveGlyph(ch, cell.idx);
         var rec = r.rec;
         var im = r.gid ? imgs[r.gid] : null;
@@ -885,39 +948,31 @@ function exportPNG() {
         'rgba(58, 54, 48, 0.55)' : 'rgba(158, 61, 50, 0.55)';
       var ruleW = state.ruleWidth === '细' ? 1 : (state.ruleWidth === '粗' ? 3 : 2);
 
-      // 竖界：每列左右各一条，从首字顶到末字底
-      if (state.ruled && state.ruleDir !== '横') {
+      /* 界行：竖排→每段左右各一条竖线，横排→每段上下各一条横线。
+         一律贯穿整幅（取字区的并集范围），和屏幕上同一套规矩。 */
+      if (state.ruled) {
         ctx.save();
         ctx.strokeStyle = ruleColor;
         ctx.lineWidth = ruleW;
+        // 字区的四条边一样由 cellAt 推（不手算）
+        var aL = cellAt(nX - 1, 0).x, aR = cellAt(0, 0).x + SIZE;
+        var aT = cellAt(0, 0).y, aB = cellAt(0, nY - 1).y + SIZE;
         cols.forEach(function (part, ci) {
-          var x = W - PAD - SIZE - ci * (SIZE + GAP * 2);
-          var yTop = PAD - GAP / 2;
-          var yBot = PAD + (part.length - 1) * (SIZE + GAP) + SIZE + GAP / 2;
+          var p = cellXY(ci, 0);
           ctx.beginPath();
-          ctx.moveTo(x - 8, yTop);
-          ctx.lineTo(x - 8, yBot);
-          ctx.moveTo(x + SIZE + 8, yTop);
-          ctx.lineTo(x + SIZE + 8, yBot);
+          if (heng) {
+            // 横排：这一段（一行）的上下各一条横线，横着贯穿
+            var yT = p.y - OFF, yB = p.y + SIZE + OFF;
+            ctx.moveTo(aL, yT); ctx.lineTo(aR, yT);
+            ctx.moveTo(aL, yB); ctx.lineTo(aR, yB);
+          } else {
+            // 竖排：这一段（一列）的左右各一条竖线，竖着贯穿
+            var xL = p.x - OFF, xR = p.x + SIZE + OFF;
+            ctx.moveTo(xL, aT); ctx.lineTo(xL, aB);
+            ctx.moveTo(xR, aT); ctx.lineTo(xR, aB);
+          }
           ctx.stroke();
         });
-        ctx.restore();
-      }
-
-      // 横界：一整条线贯穿所有列（和屏幕上一样，不是一段一段的）
-      if (state.ruled && state.ruleDir === '横') {
-        ctx.save();
-        ctx.strokeStyle = ruleColor;
-        ctx.lineWidth = ruleW;
-        var xL = W - PAD - SIZE - (cols.length - 1) * (SIZE + GAP * 2) - 8;
-        var xR = W - PAD + 8;
-        for (var hi = 0; hi < maxLen; hi++) {
-          var hy = PAD + hi * (SIZE + GAP) + SIZE + GAP / 2;
-          ctx.beginPath();
-          ctx.moveTo(xL, hy);
-          ctx.lineTo(xR, hy);
-          ctx.stroke();
-        }
         ctx.restore();
       }
 
@@ -926,13 +981,12 @@ function exportPNG() {
       ctx.strokeStyle = '#9E3D32';
       ctx.setLineDash([7, 5]);
       cols.forEach(function (part, ci) {
-        var x = W - PAD - SIZE - ci * (SIZE + GAP * 2);
         for (var j = 0; j < part.length; j++) {
           var cell = grid[ci][j];
           var rec = resolveGlyph(cell.ch, cell.idx).rec;
           if (rec && rec.nature !== '原碑拓本') {
-            var cy = PAD + j * (SIZE + GAP);
-            ctx.strokeRect(x + 4, cy + 4, SIZE - 8, SIZE - 8);
+            var q = cellXY(ci, j);
+            ctx.strokeRect(q.x + 4, q.y + 4, SIZE - 8, SIZE - 8);
           }
         }
       });
@@ -944,17 +998,18 @@ function exportPNG() {
       if (state.frame !== '关') {
         ctx.save();
         ctx.strokeStyle = ruleColor;
-        var bTop = PAD;
-        var bBot = PAD + (maxLen - 1) * (SIZE + GAP) + SIZE;
-        var bL = W - PAD - SIZE - (cols.length - 1) * (SIZE + GAP * 2);
-        var bR = W - PAD;
+        // 四条边全部取自 cellAt，跟字格用的是同一套坐标，不可能再对不上
+        var bTop = cellAt(0, 0).y;
+        var bBot = cellAt(0, nY - 1).y + SIZE;
+        var bL = cellAt(nX - 1, 0).x;
+        var bR = cellAt(0, 0).x + SIZE;
         function strokeBox(out, w) {
           ctx.lineWidth = w;
           ctx.strokeRect(bL - out, bTop - out,
             (bR - bL) + out * 2, (bBot - bTop) + out * 2);
         }
-        if (state.frame === '文武') strokeBox(14, 3);   // 粗线在外
-        strokeBox(8, 1);                                 // 细线在内：单边只画它
+        if (state.frame === '文武') strokeBox(FOUT1, FLW_T);   // 粗线在外
+        strokeBox(FOUT2, FLW_S);                               // 细线在内：单边只画它
         ctx.restore();
       }
     }
@@ -964,7 +1019,7 @@ function exportPNG() {
       // 它跟着落款一起在框外——版框框的是正文，钤印本来就该落在框外的纸面上。
       if (state.seal) {
         var sy = Math.min(H - 60, ly + used * LH + 12);
-        drawSeal(ctx, W - PAD - 40, sy, 40);
+        drawSeal(ctx, W - PADX - 40, sy, 40);
       }
     }
 
@@ -977,22 +1032,22 @@ function exportPNG() {
       ctx.font = '13px "Songti SC", SimSun, serif';
       ctx.textAlign = 'left';
       ctx.textBaseline = 'alphabetic';
-      var maxW = W - PAD * 2;        // 印章在落款下方，不占宽度
+      var maxW = W - PADX * 2;       // 印章在落款下方，不占宽度
       ctx.fillStyle = '#6B6659';
       var lines = creditLines(text, book);
       for (var li = 0; li < lines.length; li++) {
-        used += drawWrapped(ctx, lines[li], PAD, ly + used * LH, maxW, LH);
+        used += drawWrapped(ctx, lines[li], PADX, ly + used * LH, maxW, LH);
       }
       ctx.fillStyle = '#8A8474';
       if (credits.length === 0) {
-        used += drawWrapped(ctx, '全部字形来自原帖', PAD, ly + used * LH, maxW, LH);
+        used += drawWrapped(ctx, '全部字形来自原帖', PADX, ly + used * LH, maxW, LH);
       } else {
         for (var k = 0; k < credits.length && k < 2; k++) {
-          used += drawWrapped(ctx, credits[k], PAD, ly + used * LH, maxW, LH);
+          used += drawWrapped(ctx, credits[k], PADX, ly + used * LH, maxW, LH);
         }
         if (credits.length > 2) {
           used += drawWrapped(ctx, '…另有 ' + (credits.length - 2) + ' 条借用说明',
-            PAD, ly + used * LH, maxW, LH);
+            PADX, ly + used * LH, maxW, LH);
         }
       }
     }
@@ -1284,8 +1339,15 @@ function cloneCfg(c) {
     credit: !!c.credit, seal: !!c.seal,
     ruled: !!c.ruled, ruleDir: c.ruleDir || '竖',
     ruleColor: c.ruleColor || 'red', ruleWidth: c.ruleWidth || '细',
-    frame: c.frame || '文武'
+    frame: c.frame || '文武',
+    gap: num(c.gap, 8), rowGap: num(c.rowGap, 34), pad: num(c.pad, 34)
   };
+}
+
+// 数值型的配置（间距三个值）统一走这里兜底，免得 undefined 混进 CSS 变量里
+function num(v, dflt) {
+  v = Number(v);
+  return isFinite(v) ? v : dflt;
 }
 
 function cfgEqual(a, b) {
@@ -1293,7 +1355,10 @@ function cfgEqual(a, b) {
     !!a.credit === !!b.credit && !!a.seal === !!b.seal &&
     !!a.ruled === !!b.ruled && a.ruleDir === b.ruleDir &&
     a.ruleColor === b.ruleColor && a.ruleWidth === b.ruleWidth &&
-    a.frame === b.frame;
+    a.frame === b.frame &&
+    num(a.gap, 8) === num(b.gap, 8) &&
+    num(a.rowGap, 34) === num(b.rowGap, 34) &&
+    num(a.pad, 34) === num(b.pad, 34);
 }
 
 function isDirty() {
@@ -1383,6 +1448,37 @@ function syncPanel() {
   Array.prototype.forEach.call(el('segFrame').querySelectorAll('.segbtn'), function (b) {
     b.classList.toggle('on', b.dataset.v === cfg.frame);
   });
+  syncSpacePanel(cfg);
+}
+
+/* 间距的三档预设。数值按"字格 76px"这个尺度定的——
+   导出时按字格大小换算比例，所以三档在导出图里也是同样的松紧。 */
+var PRESETS = {
+  '紧': { gap: 3, rowGap: 20, pad: 20 },
+  '中': { gap: 8, rowGap: 34, pad: 34 },
+  '疏': { gap: 16, rowGap: 52, pad: 50 }
+};
+
+/* 预设点亮的条件是三个值**同时**等于该档——
+   只要微调过其中任意一项，三档都不再高亮。宁可不高亮，也不要骗人。
+   单独拆成一个函数，是因为拖滑杆时也要刷新高亮（但不能顺带重设滑杆的值）。 */
+function syncPresetOn(cfg) {
+  var g = num(cfg.gap, 8), r = num(cfg.rowGap, 34), p = num(cfg.pad, 34);
+  Array.prototype.forEach.call(el('segPreset').querySelectorAll('.segbtn'), function (b) {
+    var v = PRESETS[b.dataset.v];
+    b.classList.toggle('on', !!v && v.gap === g && v.rowGap === r && v.pad === p);
+  });
+}
+
+function syncSpacePanel(cfg) {
+  syncPresetOn(cfg);
+  var g = num(cfg.gap, 8), r = num(cfg.rowGap, 34), p = num(cfg.pad, 34);
+  el('rngGap').value = g;
+  el('rngRow').value = r;
+  el('rngPad').value = p;
+  el('valGap').textContent = g + ' px';
+  el('valRow').textContent = r + ' px';
+  el('valPad').textContent = p + ' px';
 }
 
 /* ---------- 印章 ----------
@@ -1582,6 +1678,32 @@ function init() {
       syncPanel();
       renderPreview();
       markDirty();
+    });
+  });
+
+  // 间距：三档预设一次设好三项
+  el('segPreset').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.segbtn') : null;
+    if (!b || !draft) return;
+    var v = PRESETS[b.dataset.v];
+    if (!v) return;
+    draft.gap = v.gap; draft.rowGap = v.rowGap; draft.pad = v.pad;
+    syncPanel();
+    renderPreview();
+    markDirty();
+  });
+
+  // 三个滑杆：拖动时实时改预览。
+  // ⚠️ 这里不调 syncPanel——它会把 value 写回去，拖动中容易打架，只更新数值那一项
+  ['rngGap:gap:valGap', 'rngRow:rowGap:valRow', 'rngPad:pad:valPad'].forEach(function (t) {
+    var p = t.split(':');
+    el(p[0]).addEventListener('input', function () {
+      if (!draft) return;
+      draft[p[1]] = Number(this.value);
+      el(p[2]).textContent = this.value + ' px';
+      syncPresetOn(draft);   // 只刷预设高亮，不碰滑杆的值（否则拖动会打架）
+      markDirty();
+      renderPreview();
     });
   });
 

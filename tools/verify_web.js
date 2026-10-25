@@ -117,10 +117,10 @@ try {
   const menu = document.querySelectorAll('#dmenu .dmi');
   check('目录列出全部 5 项（样式/成册/间距/遮罩/朱笔）', menu.length === 5);
   check('只有"样式"是亮的可用的', menu[0].classList.contains('on') && !menu[0].classList.contains('todo'));
-  check('做完的两项（样式/成册）不灰，后三项灰着标 todo',
-    !menu[1].classList.contains('todo') &&
-    menu[2].classList.contains('todo') && menu[4].classList.contains('todo'));
-  check('todo 项也有说明，说清排第几', (menu[2].dataset.tip || '').includes('第 3 项'));
+  check('做完的三项（样式/成册/间距）不灰，后两项灰着标 todo',
+    !menu[1].classList.contains('todo') && !menu[2].classList.contains('todo') &&
+    menu[3].classList.contains('todo') && menu[4].classList.contains('todo'));
+  check('todo 项也有说明，说清排第几', (menu[3].dataset.tip || '').includes('第 4 项'));
 
   const bkbtns = document.querySelectorAll('#bookSeg .segbtn');
   check('碑本按钮列出 books.json 里登记的两块碑', bkbtns.length === 2);
@@ -383,12 +383,12 @@ try {
   check('草稿里打开界行，主区域不动', !strip.classList.contains('ruled'));
   check('预览里已经画上界行',
     document.getElementById('previewStrip').classList.contains('ruled'));
-  check('默认竖界（不挂 ruled-h）',
-    !document.getElementById('previewStrip').classList.contains('ruled-h'));
+  check('默认竖排（不挂 heng）',
+    !document.getElementById('previewStrip').classList.contains('heng'));
 
   segR('segRuleDir', '横').click();
-  check('切成横界，预览挂上 ruled-h',
-    document.getElementById('previewStrip').classList.contains('ruled-h'));
+  check('切成横排，预览挂上 heng',
+    document.getElementById('previewStrip').classList.contains('heng'));
 
   // 线色线宽挂在**纸**上（strip 和外框的伪元素都要用），不挂在 strip 上
   const pvPaper2 = document.getElementById('previewPaper');
@@ -406,6 +406,7 @@ try {
   check('粗细三档：细 = 1px',
     pvPaper2.style.getPropertyValue('--rule-w') === '1px');
 
+  segR('segRuleDir', '竖').click();   // 回到竖排：对联是竖排的概念
   document.getElementById('btnApply').click();
   check('应用后主区域也画上界行', strip.classList.contains('ruled'));
   check('界行是叠加层：对联排版照样能用', (() => {
@@ -415,17 +416,22 @@ try {
     return ok;
   })());
 
-  // 横界必须是**贯穿**的：线撑满整幅，不是每列一段（珍宝馆的界行是贯穿的）
+  /* 界行线的方向必须跟着排列方向走：界行是「行与行之间的分界线」，
+     必然和字的走向垂直——竖排（成列）配竖线，横排（成行）配横线。
+     线的"厚度"方向就是区分点：竖线 width=线宽，横线 height=线宽。 */
+  const mpDeco = document.getElementById('mainPaper');
   segR('segRuleDir', '横').click();
   document.getElementById('btnApply').click();
-  const hl = strip.querySelectorAll('.rule-h');
-  check('横界每行一条贯穿线（8 字 8 条）', hl.length === 8);
-  check('贯穿线带行号，位置按行算',
-    hl[0].style.getPropertyValue('--i') === '0' &&
-    hl[7].style.getPropertyValue('--i') === '7');
+  check('横排：字从右到左成行（挂 heng，且不再加 duilian）',
+    strip.classList.contains('heng') && !strip.classList.contains('duilian'));
+  const hl = mpDeco.querySelectorAll('.rule-v');
+  check('横排的界行是横线：每段上下各一条（1 段 = 2 条）',
+    hl.length === 2 && hl[0].style.height === '1px');
   segR('segRuleDir', '竖').click();
   document.getElementById('btnApply').click();
-  check('切回竖界就没有横贯线了', strip.querySelectorAll('.rule-h').length === 0);
+  const vl = mpDeco.querySelectorAll('.rule-v');
+  check('竖排的界行是竖线：每段左右各一条（1 段 = 2 条）',
+    vl.length === 2 && vl[0].style.width === '1px');
 
   // 外框（版框）：关 / 单边 / 文武（一粗一细）。**只框字区**，落款在框外下方
   const mainPaper2 = document.getElementById('mainPaper');
@@ -540,6 +546,56 @@ try {
   document.getElementById('btnApply').click();
   document.getElementById('drawerClose').click();
   check('关掉界行后主区域不再画线', !strip.classList.contains('ruled'));
+
+  // ===== 第 3 项【间距】：字距 / 行距 / 页边距（三档预设 + 三个滑杆）=====
+  const mp = document.getElementById('mainPaper');
+  panelSet('#segPreset', '疏');
+  check('预设「疏朗」一次设好三项：字距 16 / 行距 52 / 页边距 50',
+    mp.style.getPropertyValue('--gg') === '16px' &&
+    mp.style.getPropertyValue('--gr') === '52px' &&
+    mp.style.getPropertyValue('--ppad-y') === '50px');
+  check('页边距左右比上下宽（竖幅该有的样子，1.3 倍）',
+    mp.style.getPropertyValue('--ppad-x') === '65px');
+  panelSet('#segPreset', '紧');
+  check('预设「紧凑」：字距 3 / 行距 20 / 页边距 20',
+    mp.style.getPropertyValue('--gg') === '3px' &&
+    mp.style.getPropertyValue('--gr') === '20px' &&
+    mp.style.getPropertyValue('--ppad-y') === '20px');
+  panelSet('#segPreset', '中');
+  check('预设「适中」回到默认 8 / 34 / 34',
+    mp.style.getPropertyValue('--gg') === '8px' &&
+    mp.style.getPropertyValue('--gr') === '34px' &&
+    mp.style.getPropertyValue('--ppad-y') === '34px');
+
+  // 滑杆微调：拖动时改的是预览，应用后主区域才动；微调过预设就不再高亮
+  document.getElementById('btnAdjust').click();
+  const pvSpace = document.getElementById('previewPaper');
+  const rngGap = document.getElementById('rngGap');
+  rngGap.value = '12';
+  rngGap.dispatchEvent(new window.Event('input'));
+  check('拖字距滑杆，数值那一项立刻更新',
+    document.getElementById('valGap').textContent === '12 px');
+  check('微调过之后三档预设都不再高亮（宁可不高亮，也不骗人）',
+    Array.from(document.querySelectorAll('#segPreset .segbtn'))
+      .every(b => !b.classList.contains('on')));
+  check('滑杆改的是预览，主区域还是改动前',
+    pvSpace.style.getPropertyValue('--gg') === '12px' &&
+    mp.style.getPropertyValue('--gg') === '8px');
+  document.getElementById('btnApply').click();
+  check('应用改动之后主区域才跟着变', mp.style.getPropertyValue('--gg') === '12px');
+  panelSet('#segPreset', '中');
+  document.getElementById('drawerClose').click();
+
+  // 导出必须和屏幕一致：不再写死常量，按字格比例换算（屏幕 76 → 导出 160）
+  check('导出不写死间距，改成按字格比例换算',
+    /var K = SIZE \/ 76/.test(appJs) && /PADX/.test(appJs) && !/var PAD = /.test(appJs));
+  check('导出的间距按字格比例换算（以前列间距写死 GAP*2，和屏幕差一倍）',
+    /var gapX = heng \? GAPT : ROWG/.test(appJs) && !/GAP \* 2/.test(appJs));
+  // 版框的四条边必须由 cellAt 推出，不许另外手算：
+  // 手算漏过一次 SIZE（写成 (nX-1)*gapX），横排时框直接飞到纸右边（白星 2026-10-25 报的）
+  check('导出的版框边界由 cellAt 推导，不手算',
+    /var bL = cellAt\(nX - 1, 0\)\.x/.test(appJs) &&
+    !/bL = W - PADX - SIZE - \(nX - 1\) \* gapX/.test(appJs));
 
   // 9b. 版本面板里的写法缩略图也跟着字色走（挑写法时看到的得和主区域一致）
   document.getElementById('input').value = '之';
