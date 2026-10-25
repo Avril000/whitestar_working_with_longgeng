@@ -16,9 +16,26 @@
    不然朱砂模式下点开面板全是黑字，等于一边挑一边骗自己。 */
 .paper.ink-red, .versions.ink-red { --ink: #B23A30; }
 
-/* 原图：碑帖拓片本来就是黑底白字，整张翻转就是这个观感 */
-.paper.ink-rub, .versions.ink-rub { filter: invert(1); }
-.paper.ink-rub .seal { filter: invert(1); }
+/* 原图：碑帖拓片本来就是黑底白字。
+   ⚠️ **这里不用 filter: invert(1) 反整张纸**。
+   反整张纸的代价是：纸里每加一样新东西，就自动被反一次——
+   版框、界行、印章、版本角标、借字虚线框、避复框，全被反成蓝色。
+   （2026-10-25 一天里连着报了四次，都是同一个根因。）
+   改成"纸铺黑 + 字给白"，观感一样，但纸上的装饰一律保持本色，以后再加什么都不会被污染。 */
+.paper.ink-rub {
+  background: #0A0B0E;
+  border-color: #26292F;
+  --ink: #E8E6DE;   /* 白字：字形图是遮罩，颜色由 --ink 给，换这里就行 */
+}
+/* 版本面板同纸一个规矩：原碑模式改成黑底白字，不反整幅。
+   ⚠️ 面板里也有朱砂提示文字（「标红」「另有 N 处已用」），反色照样变蓝。
+   具体配色见下面「版本面板 · 原碑模式」那一组。 */
+
+/* 原碑模式下，几块"被标注的格子"的浅底也要跟着变深，
+   不然在黑纸上像打了补丁。标记色（朱砂虚线、朱砂点）保持本色，那是提示，不是字形。 */
+.paper.ink-rub .glyph.borrowed { background: #1E1A18; }
+.paper.ink-rub .glyph.missing { background: #1A1A18; }
+.paper.ink-rub .glyph.dup { background: #201A18; }
 
 body {
   margin: 0;
@@ -92,18 +109,24 @@ body.previewing main { padding-left: var(--pw); }
   background: #FBF9F3;
   border: 1px solid #E0DACB;
   box-shadow: 0 2px 14px rgba(90, 80, 60, 0.08);
-  padding: 34px 44px;
+  /* 页边距参数化：外框和（下一项的）页边距都从这里取值，改一处即可 */
+  --ppad-y: 34px;
+  --ppad-x: 44px;
+  padding: var(--ppad-y) var(--ppad-x);
   min-width: 190px;
 }
 
-/* 落款：纸左下角那一行小字，和导出 PNG 里是同一句 */
+/* 落款：在版框之外的下方（框只框字区），和导出 PNG 里是同一套分行。
+   集字内容单独占一行——以前挤在一行里，一折行就上下错位。
+   margin-top 按导出图的比例换算：导出里落款离字区 92px（字格 160），
+   屏幕上字格 76，所以 92 × 76/160 ≈ 44。 */
 .credit {
-  margin-top: 22px;
+  margin-top: 44px;
   font-size: 11px;
-  line-height: 1.7;
+  line-height: 1.75;
   color: #8A8474;
-  max-width: 62%;
   letter-spacing: 0;
+  white-space: pre-line;
 }
 
 /* 页面印章：盖在纸的右下角 */
@@ -124,6 +147,7 @@ body.previewing main { padding-left: var(--pw); }
   padding-top: 3px;
   opacity: 0.92;
   user-select: none;
+  z-index: 2;   /* 盖在版框线上方——印章是后钤的，本来就该压在线上 */
   background-size: contain;
   background-repeat: no-repeat;
   background-position: center;
@@ -134,10 +158,14 @@ body.previewing main { padding-left: var(--pw); }
 .seal.custom::before { content: ""; }
 
 .strip {
+  position: relative;   /* 横界的贯穿线是绝对定位的，靠它定位 */
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--gg);
+  /* 字格边长和格间距参数化：横界那条贯穿线要用它们算位置 */
+  --gh: 76px;
+  --gg: 8px;
 }
 
 /* 对联：右为上联（第一列排右边），两列并排 */
@@ -151,13 +179,51 @@ body.previewing main { padding-left: var(--pw); }
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: var(--gg);
+}
+
+/* ---------- 成册界行（乌丝栏） ----------
+   册页上分割字列的细线。它是叠在排版之上的一层，条幅和对联都能开，
+   所以不当作第三种排版模式。
+   线色线宽由 --rule / --rule-w 两个变量给，变量挂在 strip 上——
+   主区域和预览各渲染各的，不会互相污染（和字色同一个道理）。 */
+.strip.ruled .col {
+  padding: 0 4px;
+  /* 竖界线不再画在 border 上：border 属于字列，原碑模式整纸 invert 时
+     会连字带线一起反色，朱砂就变蓝了。改成 JS 画的 .rule-v 独立元素，
+     才能单独反向反色抵消（和 .pframe、.seal 一个办法）。 */
+}
+
+/* 横界：一整条线**贯穿**所有列（珍宝馆的界行就是这样的，不是一段一段的）。
+   线由 JS 插进 strip 里，宽度撑满，位置按行号算：第 i 行下方 = i*(字高+间距) + 字高 + 间距/2 */
+.strip.ruled.ruled-h .col {
+  padding: 0;
+  border-left: none;
+  border-right: none;
+}
+
+.rule-h {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: var(--rule-w, 1px);
+  background: var(--rule, rgba(158, 61, 50, 0.55));
+  top: calc(var(--i) * (var(--gh) + var(--gg)) + var(--gh) + var(--gg) / 2);
+  pointer-events: none;
+}
+
+/* 竖界：每列左右各一条，位置由 JS 按字列的实际盒子给（和版框同一套量法） */
+.rule-v {
+  position: absolute;
+  background: var(--rule, rgba(158, 61, 50, 0.55));
+  pointer-events: none;
+  z-index: 1;
 }
 
 .glyph {
   position: relative;
-  width: 76px;
-  height: 76px;
+  width: var(--gh, 76px);
+  height: var(--gh, 76px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -445,6 +511,27 @@ body.previewing main { padding-left: var(--pw); }
 .vhint b { color: #6B6659; font-weight: normal; }
 .vhint b.warn { color: #9E3D32; }
 
+/* ---------- 版本面板 · 原碑模式 ----------
+   和纸一样：铺黑底 + 字给白，不反整幅。
+   只调"底色和分隔线"这类衬托的东西；
+   **朱砂提示一律不动**——「标红」「另有 N 处已用」这些是本色的红，
+   反色会变蓝，正是要保住的东西。 */
+.versions.ink-rub {
+  background: #0A0B0E;
+  border-color: #26292F;
+  --ink: #E8E6DE;
+}
+.versions.ink-rub .vhead { border-bottom-color: #2A2D33; }
+.versions.ink-rub .vfoot { border-top-color: #2A2D33; }
+.versions.ink-rub .vitem { background: #14151A; border-color: #2A2D33; }
+.versions.ink-rub .vitem:hover { background: #1C1E24; border-color: #C89B3C; }
+.versions.ink-rub .vitem.on { background: #16201A; }
+.versions.ink-rub .vcap { color: #6E9E7E; }          /* 绿在黑底上要提亮一点 */
+.versions.ink-rub .vhint b { color: #9A948A; }
+/* 主按钮本来是黑底白字，挪到黑面板上就看不见了——翻成浅底深字 */
+.versions.ink-rub .vfoot .primary { background: #E8E6DE; color: #1A1A1A; }
+.versions.ink-rub .vfoot .primary:hover { background: #F5F3EC; }
+
 .footbar {
   display: flex;
   align-items: center;
@@ -648,7 +735,13 @@ body.previewing main { padding-left: var(--pw); }
 }
 
 .pcol { display: flex; flex-direction: column; gap: 8px; }
-.pcol .paper { padding: 26px 30px; flex-shrink: 0; }
+/* 预览里的纸小一号，页边距跟着变小——外框的 inset 是按变量算的，会自动跟着缩 */
+.pcol .paper {
+  --ppad-y: 26px;
+  --ppad-x: 30px;
+  padding: var(--ppad-y) var(--ppad-x);
+  flex-shrink: 0;
+}
 
 /* 平时只显示"改动后"——"改动前"就是主区域本身，不用重复摆一遍 */
 .pcol.before { display: none; }
@@ -681,6 +774,27 @@ body.previewing.zoomed main { padding-left: 0; }
 }
 
 .pfoot .pn { font-size: 11px; color: #9A948A; }
+
+/* ---------- 外框（页边线） ----------
+   ⚠️ 框只框**字区**，不框落款。
+   以前框住整张纸，落款排着排着就掉到框线外面去了（白星 2026-10-25 报的"被框挤压"）。
+   版框本来就是框正文的，落款和印章在框外下方才对——这样落款想往下退多少都自由。
+   框的位置由 JS 按字列的实际位置算（.pframe 元素），下一项调页边距时字列一动框就跟着动。
+   「文武」= 一粗一细双边：外面粗、里面细，是刻本册页最常见的版框。 */
+.pframe {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;   /* 压在字和界行之下，但不压住印章（印章 z-index 更高） */
+}
+
+.pframe.thick { border: 3px solid var(--rule, rgba(158, 61, 50, 0.55)); }
+.pframe.thin { border: 1px solid var(--rule, rgba(158, 61, 50, 0.55)); }
+
+/* 版框、界行这两样**不需要**任何反色抵消了：
+   原碑模式已经改成"纸铺黑 + 字给白"，不再反整张纸（见上面的 .paper.ink-rub）。
+   朱砂就是朱砂，黑纸上也还是朱砂。
+   （以前这里挂着三条 filter: invert(1) 打补丁，现在一并删掉——
+     留着反而会把它们反成蓝色。） */
 
 /* ---------- 集字调整抽屉 ----------
    从右边滑出。目录竖排在抽屉最右侧，点一项，窗格朝左边展开。 */

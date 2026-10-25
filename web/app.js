@@ -32,7 +32,13 @@
    draft  = 面板里正在调的那一套。改设置先落在 draft 上，主区域不动，
            左侧预览窗格实时显示 draft 的效果；点【应用改动】才落到 state。
            这样主区域天然就是"改动前"，预览窗格是"改动后"，两边一比就清楚。 */
-var state = { book: 'dbt', layout: '条幅', ink: 'ink', credit: true, seal: true };
+var state = {
+  book: 'dbt', layout: '条幅', ink: 'ink', credit: true, seal: true,
+  // 成册界行（册页上分割字列的细线，也叫乌丝栏）。和条幅/对联是正交的——
+  // 它是叠在排版之上的一层，不是第三种排版模式。
+  ruled: false, ruleDir: '竖', ruleColor: 'red', ruleWidth: '细',
+  frame: '文武'   // 外框：关 / 单边（细） / 文武（一粗一细，刻本册页最常见的版框）
+};
 var draft = null;
 
 var SEAL_KEY = 'glyph_seal_v1';   // 用户自己上传的印章（dataURL），存本机，不联网
@@ -48,7 +54,7 @@ var sealImage = null;             // null = 用程序画的那枚「集字」朱
    做一项就把它的 ready 改成 true，目录自动变亮。 */
 var SECTIONS = [
   { key: 'style', name: '样式', ready: true },
-  { key: 'album', name: '成册', ready: false, todo: '成册界行：给整幅加线框——颜色、方向（横竖）、粗细，以及框离首尾字留多远。做成开关，条幅和对联都能叠。' },
+  { key: 'album', name: '成册', ready: true, todo: '成册界行：给整幅加线框——颜色、方向（横竖）、粗细，以及框离首尾字留多远。做成开关，条幅和对联都能叠。' },
   { key: 'space', name: '间距', ready: false, todo: '行间距、字间距、页边距。每项给三档预设（紧 / 中 / 疏），再留一个微调滑杆。' },
   { key: 'mask', name: '遮罩', ready: false, todo: '单字遮罩：田字格 / 米字格 / 九宫格，勾上就在每个字格上叠一层辅助线，方便对着临。' },
   { key: 'brush', name: '朱笔', ready: false, todo: '朱笔单字：可以按字挑出某几个字染成朱砂，用来标重点。' }
@@ -56,8 +62,15 @@ var SECTIONS = [
 var curSection = 'style';
 
 var HKEY = 'glyph_history_v1';
-var PKEY = 'glyph_pick_v1';    // 挑了哪个版本：{ "dbt:之#0": "05_G73" }
-var OKKEY = 'glyph_pick_ok_v1'; // 哪些字已经拍板：{ "dbt:之#0": 1 }
+/* ⚠️ 2026-10-25 改：版本选择只在**当前这句话**里记得，不再写 localStorage。
+   以前的键是「碑:字#第几次出现」，跟整句内容无关——
+   于是换了句子，上次挑的写法还跟着过来。白星举的例子：
+   【道可道非常道】给第 1 个「道」挑了写法 6，重生成【道法不同】时
+   第 1 个「道」还是写法 6，可这已经是另一句话了，没有道理沿用。
+   同一句话之内（改样式、开面板、挑写法）照旧记得；换了句子就回到自动避复。
+   这两个键只留着用来清理旧数据，不再读写。 */
+var PKEY = 'glyph_pick_v1';
+var OKKEY = 'glyph_pick_ok_v1';
 var MAX_HISTORY = 50;
 
 var REC = {};          // gid -> 字形记录（建一次，避免每次遍历上千条）
@@ -87,36 +100,26 @@ function buildRecIndex() {
 
 /* ---------- 多版本选择 ---------- */
 
+// 只在内存里记：关掉网页就回到自动避复，换句子也回到自动避复（见上面的说明）
 function loadPicks() {
-  if (picksCache) return picksCache;
-  picksCache = {};
-  var s = getStore();
-  if (s) {
-    try { picksCache = JSON.parse(s.getItem(PKEY)) || {}; } catch (e) { picksCache = {}; }
-  }
+  if (!picksCache) picksCache = {};
   return picksCache;
 }
 
-function savePicks() {
-  var s = getStore();
-  if (!s) return;
-  try { s.setItem(PKEY, JSON.stringify(picksCache)); } catch (e) { /* 存不下不影响使用 */ }
-}
+function savePicks() { /* 不再落盘 */ }
 
 function loadOk() {
-  if (okCache) return okCache;
-  okCache = {};
-  var s = getStore();
-  if (s) {
-    try { okCache = JSON.parse(s.getItem(OKKEY)) || {}; } catch (e) { okCache = {}; }
-  }
+  if (!okCache) okCache = {};
   return okCache;
 }
 
-function saveOk() {
-  var s = getStore();
-  if (!s) return;
-  try { s.setItem(OKKEY, JSON.stringify(okCache)); } catch (e) {}
+function saveOk() { /* 不再落盘 */ }
+
+// 换了一句话：之前为上一句挑的写法全部作废，回到自动避复
+function resetPicks() {
+  picksCache = {};
+  okCache = {};
+  curPick = null;
 }
 
 // 记忆的键 = 碑 + 字 + 本句第几次出现
@@ -304,6 +307,83 @@ function makeGlyphBox(ch, idx, cfg, opts) {
   return box;
 }
 
+/* 每个字列相对这张纸的盒子。版框和竖界都靠它定位——
+   不拿 strip 自己的盒子：strip 是块级 flex，宽度会撑满整张纸，
+   那样框就贴到纸边上了，等于又回到"框住整张纸"。 */
+function colBoxes(paper, strip) {
+  var out = [];
+  Array.prototype.forEach.call(strip.querySelectorAll('.col'), function (col) {
+    var x = 0, y = 0, n = col, guard = 0;
+    while (n && n !== paper && guard++ < 20) {
+      x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent;
+    }
+    out.push({ x: x, y: y, w: col.offsetWidth, h: col.offsetHeight });
+  });
+  return out;
+}
+
+/* 装饰层：版框 + 竖界，都是"按字列位置算出来的线"，所以放一起画。
+   ⚠️ 可以重复调用——每次先把上一轮画的擦掉，所以调用方可以在
+   布局稳定之后再补画一次（见 renderFooter 里的说明）。 */
+function drawDecor(paper, strip, cfg) {
+  Array.prototype.forEach.call(
+    paper.querySelectorAll('.pframe, .rule-v'), function (n) {
+      if (n.parentNode) n.parentNode.removeChild(n);
+    });
+  var boxes = colBoxes(paper, strip);
+  if (!boxes.length) return;   // 一个字都没有：不画
+
+  // 竖界：每列左右各一条。以前是画在 .col 的 border 上，
+  // 那样原碑模式整纸反色时会把它一起反成蓝色——改成独立元素才能单独抵消。
+  if (cfg.ruled && cfg.ruleDir === '竖') {
+    var lw = cfg.ruleWidth === '细' ? 1 : (cfg.ruleWidth === '粗' ? 3 : 2);
+    boxes.forEach(function (b) {
+      [b.x, b.x + b.w - lw].forEach(function (lx) {
+        var v = document.createElement('i');
+        v.className = 'rule-v';
+        v.style.left = lx + 'px';
+        v.style.top = b.y + 'px';
+        v.style.width = lw + 'px';
+        v.style.height = b.h + 'px';
+        paper.appendChild(v);
+      });
+    });
+  }
+
+  // 版框：只框字区，落款和印章在框外下方（册页文武边栏的规矩）。
+  // ⚠️ 别改回"框住整张纸"——那样落款排下来会掉到框线外面，看着像被框挤住了。
+  if (cfg.frame === '关') return;
+  var L = null, T = null, R = null, B = null;
+  boxes.forEach(function (b) {
+    L = (L === null) ? b.x : Math.min(L, b.x);
+    T = (T === null) ? b.y : Math.min(T, b.y);
+    R = (R === null) ? (b.x + b.w) : Math.max(R, b.x + b.w);
+    B = (B === null) ? (b.y + b.h) : Math.max(B, b.y + b.h);
+  });
+
+  function mk(out, cls) {
+    var f = document.createElement('div');
+    f.className = 'pframe ' + cls;
+    f.style.left = (L - out) + 'px';
+    f.style.top = (T - out) + 'px';
+    f.style.width = (R - L + out * 2) + 'px';
+    f.style.height = (B - T + out * 2) + 'px';
+    paper.appendChild(f);
+  }
+  if (cfg.frame === '文武') mk(14, 'thick');   // 粗线在外
+  mk(8, 'thin');                               // 细线在内：单边只画它
+}
+
+/* 落款设完之后必须补画一次装饰层。
+   原因：落款是纸的内容，字一多纸就变宽，居中的字列会跟着挪位置；
+   而 renderInto 里画框发生在落款更新**之前**，量到的是旧位置
+   ——表现就是刚打开网页时框偏左、右框线压在字脚上，
+   点一下"应用改动"（此时落款已是最终值）框就正了（白星 2026-10-25 报的）。 */
+function redrawDecor(strip, cfg) {
+  var paper = strip.closest ? (strip.closest('.paper') || strip) : strip;
+  drawDecor(paper, strip, cfg);
+}
+
 /* 把一句话渲染到指定的 strip 里。主区域和左侧预览窗格共用这一份代码——
    只有"用哪套设置"不同，所以看到的和导出的必然一致。
    返回统计结果，交给调用方去写各自的状态行。 */
@@ -313,6 +393,20 @@ function renderInto(strip, cfg, opts) {
   var cols = buildColumns(text, cfg.layout);
   strip.innerHTML = '';
   strip.classList.toggle('duilian', cols.length > 1);
+
+  // 成册界行 + 外框：开关 / 方向 / 颜色 / 粗细，全用 class 和两个 CSS 变量表达。
+  // 变量挂在**纸**上（strip 和框的伪元素都能继承到），主区域和预览各渲染各的，
+  // 所以不会互相污染（和字色、和 ink 同一个道理）。
+  var paper = strip.closest ? (strip.closest('.paper') || strip) : strip;
+  strip.classList.toggle('ruled', !!cfg.ruled);
+  strip.classList.toggle('ruled-h', cfg.ruleDir === '横');
+  paper.classList.toggle('framed', cfg.frame !== '关');
+  paper.classList.toggle('framed-double', cfg.frame === '文武');
+  // 颜色和导出 PNG 里用的是同一组值（含透明度），屏幕上看到的才和拿到的完全一致
+  paper.style.setProperty('--rule', cfg.ruleColor === 'ink' ?
+    'rgba(58, 54, 48, 0.55)' : 'rgba(158, 61, 50, 0.55)');
+  paper.style.setProperty('--rule-w',
+    cfg.ruleWidth === '细' ? '1px' : (cfg.ruleWidth === '粗' ? '3px' : '2px'));
 
   var borrowed = 0;
   var missing = [];
@@ -346,6 +440,19 @@ function renderInto(strip, cfg, opts) {
     strip.appendChild(col);
   });
 
+  // 横界：一整条线**贯穿**所有列（珍宝馆的界行就是贯穿的，不是一段一段的）。
+  // 线撑满 strip 的宽度，位置按行号算，所以对联几列都照样贯穿。
+  if (cfg.ruled && cfg.ruleDir === '横') {
+    var maxRows = 0;
+    cols.forEach(function (p) { if (p.length > maxRows) maxRows = p.length; });
+    for (var r = 0; r < maxRows; r++) {
+      var ln = document.createElement('i');
+      ln.className = 'rule-h';
+      ln.style.setProperty('--i', r);
+      strip.appendChild(ln);
+    }
+  }
+
   // 同字同形检查：凡是本句出现两次以上的写法都标出来。
   // 自动避复一般不会撞，但手动挑的时候可能挑成一样——收起面板后也得看得见。
   var dupCount = 0;
@@ -360,6 +467,12 @@ function renderInto(strip, cfg, opts) {
         ' 个字用了同一个写法——同字同形，书法上要避复。';
     }
   });
+
+  // ⚠️ 装饰层必须等字格全插完、浏览器排好版之后再画。
+  // 以前这行放在函数开头（刚 innerHTML='' 清空完），量到的宽高是 0，
+  // 框就缩成一团贴在纸顶上（白星 2026-10-25 报的）。
+  // 这里画的是"当前"位置；落款更新后纸宽会变，所以外面还要再补画一次。
+  drawDecor(paper, strip, cfg);
 
   return {
     text: text, borrowed: borrowed, missing: missing,
@@ -390,11 +503,36 @@ function stateLine(r) {
   return { text: '全部来自原帖' + tail, cls: 'state ok' };
 }
 
-// 落款那一行小字（屏幕上和导出 PNG 里是同一句）
-function creditLine(text, book) {
+/* 落款分成两行：**集字内容单独占一行**。
+   以前"碑名 作者 集字 XXX 共 N 字"挤在一行，一折行集字内容就上下错位；
+   而且 canvas 的 fillText 根本不会自动换行，长对联会直接画到纸外面去。 */
+function creditLines(text, book) {
   var flat = text.replace(/\s+/g, '');
-  return (book.name || '') + '　' + (book.author || '') + '　集字 ' +
-    flat + ' 共 ' + flat.length + ' 字';
+  return [
+    (book.name || '') + '　' + (book.author || '') + '　集字',
+    flat + '　共 ' + flat.length + ' 字'
+  ];
+}
+
+// canvas 不会自动换行，长落款得自己折。返回实际画了几行。
+function drawWrapped(ctx, text, x, y, maxW, lh) {
+  var line = '';
+  var n = 0;
+  for (var i = 0; i < text.length; i++) {
+    var t = line + text.charAt(i);
+    if (line && ctx.measureText(t).width > maxW) {
+      ctx.fillText(line, x, y + n * lh);
+      n++;
+      line = text.charAt(i);
+    } else {
+      line = t;
+    }
+  }
+  if (line) {
+    ctx.fillText(line, x, y + n * lh);
+    n++;
+  }
+  return n;
 }
 
 // 主区域 = 已经应用的（改动前）
@@ -412,9 +550,10 @@ function render() {
   s.className = line.cls;
 
   var cr = el('credit');
-  cr.textContent = state.credit ? creditLine(r.text, book) : '';
+  cr.textContent = state.credit ? creditLines(r.text, book).join('\n') : '';
   cr.style.display = state.credit ? '' : 'none';
   el('seal').style.display = state.seal ? '' : 'none';
+  redrawDecor(el('strip'), state);   // 落款改完纸宽会变，框要按新位置重画
 }
 
 // 放大后的"改动前"那一栏：内容就是主区域正在显示的 state
@@ -422,9 +561,10 @@ function renderBefore() {
   var r = renderInto(el('beforeStrip'), state, { interactive: false });
   var book = window.DATA.books[state.book] || {};
   var cr = el('beforeCredit');
-  cr.textContent = state.credit ? creditLine(r.text, book) : '';
+  cr.textContent = state.credit ? creditLines(r.text, book).join('\n') : '';
   cr.style.display = state.credit ? '' : 'none';
   applyInkTo(el('beforePaper'), state.ink);
+  redrawDecor(el('beforeStrip'), state);
 }
 
 // 预览窗格 = 面板里正在调的（改动后）
@@ -435,7 +575,7 @@ function renderPreview() {
   var book = window.DATA.books[draft.book] || {};
 
   var cr = el('previewCredit');
-  cr.textContent = draft.credit ? creditLine(r.text, book) : '';
+  cr.textContent = draft.credit ? creditLines(r.text, book).join('\n') : '';
   cr.style.display = draft.credit ? '' : 'none';
   el('previewSeal').style.display = draft.seal ? '' : 'none';
 
@@ -446,6 +586,7 @@ function renderPreview() {
 
   // 字色在预览里也要看得出来——但用的是 draft，而且只上在这张纸上，不碰 body
   applyInkTo(el('previewPaper'), draft.ink);
+  redrawDecor(el('previewStrip'), draft);
 }
 
 /* ---------- 版本选择区 ---------- */
@@ -636,7 +777,10 @@ function exportPNG() {
   var SIZE = 160;   // 每格边长
   var GAP = 18;     // 格间距
   var PAD = 64;     // 纸边距
-  var FOOT = 78;    // 落款区
+  // 落款区。以前只有 78，落款正好卡在框线上（被"挤压"）；
+  // 现在框只框字区、落款在框外下方，这里要留够"往下退 + 两行字 + 印章"的空间。
+  var FOOT = 170;
+  var LH = 19;      // 落款行高
 
   var maxLen = 0;
   cols.forEach(function (c) { if (c.length > maxLen) maxLen = c.length; });
@@ -686,16 +830,6 @@ function exportPNG() {
     var credits = [];
     cols.forEach(function (part, ci) {
       var x = W - PAD - SIZE - ci * (SIZE + GAP * 2);
-      // 界格（朱砂细线）
-      ctx.strokeStyle = 'rgba(158, 61, 50, 0.16)';
-      ctx.lineWidth = 1;
-      for (var i = 0; i <= part.length; i++) {
-        var y = PAD + i * (SIZE + GAP) - GAP / 2;
-        ctx.beginPath();
-        ctx.moveTo(x - 8, y);
-        ctx.lineTo(x + SIZE + 8, y);
-        ctx.stroke();
-      }
 
       for (var j = 0; j < part.length; j++) {
         var cell = grid[ci][j];
@@ -731,42 +865,139 @@ function exportPNG() {
           ctx.drawImage(im, x, cy, SIZE, SIZE);
         }
 
+        // 借字的朱砂虚线框统一在 paintDecor 里画（标记不能被反色，见那里）
         if (rec && rec.nature !== '原碑拓本') {
-          ctx.save();
-          ctx.strokeStyle = '#9E3D32';
-          ctx.setLineDash([7, 5]);
-          ctx.strokeRect(x + 4, cy + 4, SIZE - 8, SIZE - 8);
-          ctx.setLineDash([]);
-          ctx.restore();
           credits.push('「' + ch + '」借自' + rec.nature + '，' + rec.holder);
         }
       }
     });
 
-    // 落款区（可以在面板里关掉）
-    var book = window.DATA.books[state.book] || {};
-    var ly = H - FOOT + 34;
-    if (state.credit) {
-      ctx.fillStyle = '#6B6659';
-      ctx.font = '13px "Songti SC", SimSun, serif';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'alphabetic';
-      ctx.fillText(creditLine(text, book), PAD, ly);
-      if (credits.length === 0) {
-        ctx.fillStyle = '#8A8474';
-        ctx.fillText('全部字形来自原帖', PAD, ly + 20);
-      } else {
-        for (var k = 0; k < credits.length && k < 2; k++) {
-          ctx.fillText(credits[k], PAD, ly + 20 + k * 18);
+    // ⚠️ 界行、版框、借字框、印章这些**标记**统一在 paintDecor / paintSeal 里画，
+    // 而且排在反色之后（见函数上面的说明）——它们是朱砂，被反色会变成青蓝。
+
+    /* 界行 / 借字框 / 版框 / 印章 —— 这些都是**标记**，不是字形。
+       ⚠️ 它们统一排到反色**之后**再画（调用处见下）：
+       原碑模式这里是整幅反色，朱砂被反过去就是青蓝。
+       屏幕上早改成"纸铺黑 + 字给白"不反整张纸了，导出还在反，
+       所以只能靠"反完补画"把本色补回来。 */
+    function paintDecor() {
+      var ruleColor = state.ruleColor === 'ink' ?
+        'rgba(58, 54, 48, 0.55)' : 'rgba(158, 61, 50, 0.55)';
+      var ruleW = state.ruleWidth === '细' ? 1 : (state.ruleWidth === '粗' ? 3 : 2);
+
+      // 竖界：每列左右各一条，从首字顶到末字底
+      if (state.ruled && state.ruleDir !== '横') {
+        ctx.save();
+        ctx.strokeStyle = ruleColor;
+        ctx.lineWidth = ruleW;
+        cols.forEach(function (part, ci) {
+          var x = W - PAD - SIZE - ci * (SIZE + GAP * 2);
+          var yTop = PAD - GAP / 2;
+          var yBot = PAD + (part.length - 1) * (SIZE + GAP) + SIZE + GAP / 2;
+          ctx.beginPath();
+          ctx.moveTo(x - 8, yTop);
+          ctx.lineTo(x - 8, yBot);
+          ctx.moveTo(x + SIZE + 8, yTop);
+          ctx.lineTo(x + SIZE + 8, yBot);
+          ctx.stroke();
+        });
+        ctx.restore();
+      }
+
+      // 横界：一整条线贯穿所有列（和屏幕上一样，不是一段一段的）
+      if (state.ruled && state.ruleDir === '横') {
+        ctx.save();
+        ctx.strokeStyle = ruleColor;
+        ctx.lineWidth = ruleW;
+        var xL = W - PAD - SIZE - (cols.length - 1) * (SIZE + GAP * 2) - 8;
+        var xR = W - PAD + 8;
+        for (var hi = 0; hi < maxLen; hi++) {
+          var hy = PAD + hi * (SIZE + GAP) + SIZE + GAP / 2;
+          ctx.beginPath();
+          ctx.moveTo(xL, hy);
+          ctx.lineTo(xR, hy);
+          ctx.stroke();
         }
-        if (credits.length > 2) ctx.fillText('…另有 ' + (credits.length - 2) + ' 条借用说明', PAD, ly + 20 + 36);
+        ctx.restore();
+      }
+
+      // 借来的字：朱砂虚线框标出来（屏幕上也是这个规矩）
+      ctx.save();
+      ctx.strokeStyle = '#9E3D32';
+      ctx.setLineDash([7, 5]);
+      cols.forEach(function (part, ci) {
+        var x = W - PAD - SIZE - ci * (SIZE + GAP * 2);
+        for (var j = 0; j < part.length; j++) {
+          var cell = grid[ci][j];
+          var rec = resolveGlyph(cell.ch, cell.idx).rec;
+          if (rec && rec.nature !== '原碑拓本') {
+            var cy = PAD + j * (SIZE + GAP);
+            ctx.strokeRect(x + 4, cy + 4, SIZE - 8, SIZE - 8);
+          }
+        }
+      });
+      ctx.setLineDash([]);
+      ctx.restore();
+
+      // 版框：**只框字区**，落款和印章在框外下方。
+      // 文武 = 一粗一细双边：外面粗、里面细，刻本册页最常见的版框。
+      if (state.frame !== '关') {
+        ctx.save();
+        ctx.strokeStyle = ruleColor;
+        var bTop = PAD;
+        var bBot = PAD + (maxLen - 1) * (SIZE + GAP) + SIZE;
+        var bL = W - PAD - SIZE - (cols.length - 1) * (SIZE + GAP * 2);
+        var bR = W - PAD;
+        function strokeBox(out, w) {
+          ctx.lineWidth = w;
+          ctx.strokeRect(bL - out, bTop - out,
+            (bR - bL) + out * 2, (bBot - bTop) + out * 2);
+        }
+        if (state.frame === '文武') strokeBox(14, 3);   // 粗线在外
+        strokeBox(8, 1);                                 // 细线在内：单边只画它
+        ctx.restore();
       }
     }
 
-    // 印章盖在右下（也可以在面板里关掉；盖的是自己上传的那枚或内置的「集字」印）
-    if (state.seal) drawSeal(ctx, W - PAD - 8, H - PAD - 2, 40);
+    function paintSeal() {
+      // 印章盖在落款下方偏右（也可以在面板里关掉）。
+      // 它跟着落款一起在框外——版框框的是正文，钤印本来就该落在框外的纸面上。
+      if (state.seal) {
+        var sy = Math.min(H - 60, ly + used * LH + 12);
+        drawSeal(ctx, W - PAD - 40, sy, 40);
+      }
+    }
 
-    // 原图（拓片观感）：和屏幕上一样，整幅翻转——碑帖拓片本来就是黑底白字
+    // 落款区：在版框之外的下方，所以不受框挤压，想往下退多少都行。
+    // 两行起步（集字内容单独占一行），每行自己折行，长对联也不会画到纸外。
+    var book = window.DATA.books[state.book] || {};
+    var ly = H - FOOT + 41;          // 第一行基线：离字区底 92px（比原来退了一截）
+    var used = 0;
+    if (state.credit) {
+      ctx.font = '13px "Songti SC", SimSun, serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      var maxW = W - PAD * 2;        // 印章在落款下方，不占宽度
+      ctx.fillStyle = '#6B6659';
+      var lines = creditLines(text, book);
+      for (var li = 0; li < lines.length; li++) {
+        used += drawWrapped(ctx, lines[li], PAD, ly + used * LH, maxW, LH);
+      }
+      ctx.fillStyle = '#8A8474';
+      if (credits.length === 0) {
+        used += drawWrapped(ctx, '全部字形来自原帖', PAD, ly + used * LH, maxW, LH);
+      } else {
+        for (var k = 0; k < credits.length && k < 2; k++) {
+          used += drawWrapped(ctx, credits[k], PAD, ly + used * LH, maxW, LH);
+        }
+        if (credits.length > 2) {
+          used += drawWrapped(ctx, '…另有 ' + (credits.length - 2) + ' 条借用说明',
+            PAD, ly + used * LH, maxW, LH);
+        }
+      }
+    }
+
+    // 原图（拓片观感）：碑帖拓片本来就是黑底白字，整幅翻转就是这个观感
     if (state.ink === 'rub') {
       ctx.save();
       ctx.globalCompositeOperation = 'difference';
@@ -774,6 +1005,10 @@ function exportPNG() {
       ctx.fillRect(0, 0, W, H);
       ctx.restore();
     }
+
+    // 标记（界行 / 借字框 / 版框 / 印章）排在反色之后补画，保住朱砂本色
+    paintDecor();
+    paintSeal();
 
     // 下载
     var a = document.createElement('a');
@@ -867,6 +1102,7 @@ function renderHistory() {
       state.layout = item.layout || '条幅';
       syncPanel();
       closeVersions();
+      resetPicks();   // 从历史里换了一句话，等于换句子
       render();
       toggleHistory(false);
     });
@@ -1045,13 +1281,19 @@ function openSection(key) {
 function cloneCfg(c) {
   return {
     book: c.book, layout: c.layout, ink: c.ink,
-    credit: !!c.credit, seal: !!c.seal
+    credit: !!c.credit, seal: !!c.seal,
+    ruled: !!c.ruled, ruleDir: c.ruleDir || '竖',
+    ruleColor: c.ruleColor || 'red', ruleWidth: c.ruleWidth || '细',
+    frame: c.frame || '文武'
   };
 }
 
 function cfgEqual(a, b) {
   return a.book === b.book && a.layout === b.layout && a.ink === b.ink &&
-    !!a.credit === !!b.credit && !!a.seal === !!b.seal;
+    !!a.credit === !!b.credit && !!a.seal === !!b.seal &&
+    !!a.ruled === !!b.ruled && a.ruleDir === b.ruleDir &&
+    a.ruleColor === b.ruleColor && a.ruleWidth === b.ruleWidth &&
+    a.frame === b.frame;
 }
 
 function isDirty() {
@@ -1123,6 +1365,23 @@ function syncPanel() {
   });
   Array.prototype.forEach.call(el('segTail').querySelectorAll('.segbtn'), function (b) {
     b.classList.toggle('on', cfg[b.dataset.v] !== false);
+  });
+
+  // 界行：开关是二选一（开/关），方向 / 颜色 / 粗细是点哪个用哪个
+  Array.prototype.forEach.call(el('segRuled').querySelectorAll('.segbtn'), function (b) {
+    b.classList.toggle('on', (b.dataset.v === 'on') === !!cfg.ruled);
+  });
+  Array.prototype.forEach.call(el('segRuleDir').querySelectorAll('.segbtn'), function (b) {
+    b.classList.toggle('on', b.dataset.v === cfg.ruleDir);
+  });
+  Array.prototype.forEach.call(el('segRuleColor').querySelectorAll('.segbtn'), function (b) {
+    b.classList.toggle('on', b.dataset.v === cfg.ruleColor);
+  });
+  Array.prototype.forEach.call(el('segRuleWidth').querySelectorAll('.segbtn'), function (b) {
+    b.classList.toggle('on', b.dataset.v === cfg.ruleWidth);
+  });
+  Array.prototype.forEach.call(el('segFrame').querySelectorAll('.segbtn'), function (b) {
+    b.classList.toggle('on', b.dataset.v === cfg.frame);
   });
 }
 
@@ -1240,6 +1499,12 @@ function applyInkToPage(key) {
 function init() {
   buildRecIndex();
 
+  // 清掉旧版本的跨句子记忆（这两个键已经不再读写，留着只会让人困惑）
+  try {
+    var st = getStore();
+    if (st) { st.removeItem(PKEY); st.removeItem(OKKEY); }
+  } catch (e) { /* 清不掉不影响使用 */ }
+
   // 默认底本：books.json 里第一块"真的有字"的碑（颜勤礼碑入库后会自动被考虑）
   var has = booksWithGlyphs();
   var keys = Object.keys(window.DATA.books || {});
@@ -1255,6 +1520,7 @@ function init() {
 
   el('input').addEventListener('input', function () {
     closeVersions();   // 改了内容，版本区里的字可能已经不在句里了
+    resetPicks();      // 换了句子：上一句挑的写法不作数，回到自动避复
     render();
     renderPreview();   // 预览也跟着换内容
   });
@@ -1294,6 +1560,29 @@ function init() {
     syncPanel();
     renderPreview();
     markDirty();
+  });
+
+  // 成册界行：四组都是点哪个用哪个（开关是"开 / 关"二选一）
+  el('segRuled').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.segbtn') : null;
+    if (!b || !draft) return;
+    draft.ruled = (b.dataset.v === 'on');
+    syncPanel();
+    renderPreview();
+    markDirty();
+  });
+
+  ['segRuleDir:ruleDir', 'segRuleColor:ruleColor', 'segRuleWidth:ruleWidth',
+   'segFrame:frame'].forEach(function (pair) {
+    var p = pair.split(':');
+    el(p[0]).addEventListener('click', function (e) {
+      var b = e.target.closest ? e.target.closest('.segbtn') : null;
+      if (!b || !draft) return;
+      draft[p[1]] = b.dataset.v;
+      syncPanel();
+      renderPreview();
+      markDirty();
+    });
   });
 
   el('btnApply').addEventListener('click', applyDraft);

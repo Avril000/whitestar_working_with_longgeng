@@ -135,7 +135,7 @@
             data-tip="两列并排。输入时用空格分隔上下联，&#10;如「上善若水 道法自然」——右边那一列是上联。">对联</button>
         </div>
 
-        <h3 class="dtitle">字色</h3>
+        <h3 class="dtitle">字色（全局）</h3>
         <div class="seg" id="segInk">
           <button class="segbtn" data-v="ink" id="btnInk"
             data-tip="碑刻最常见的样子：宣纸底、墨色字。">墨色</button>
@@ -144,7 +144,8 @@
           <button class="segbtn" data-v="rub"
             data-tip="碑帖拓片本来的样子：黑底白字。&#10;整幅翻转得到的观感，不是另存一份原照片&#10;——那样体积要翻倍。">原图</button>
         </div>
-        <p class="dnote">三种字色共用同一张字形图，只是换填充色或整幅反色，所以不额外占任何体积。</p>
+        <p class="dnote">改的是整幅字的颜色，所有字一起变——不是给某一个字上色。
+三种字色共用同一张字形图，只是换填充色或整幅反色，所以不额外占任何体积。</p>
 
         <h3 class="dtitle">落款与印章</h3>
         <div class="seg" id="segTail">
@@ -170,6 +171,54 @@
           </label>
           <p class="dnote" id="sealNote">截图/扫描件底色常常不是纯白。盖上去还带着白方块，就把强度调低一点（更狠地去白）。</p>
         </div>
+      </section>
+
+      <section class="dpane" data-key="album">
+        <h3 class="dtitle">界行</h3>
+        <div class="seg" id="segRuled">
+          <button class="segbtn" data-v="on"
+            data-tip="画上界行：册页上用来分割字列的细线，也叫乌丝栏。&#10;它是叠在排版之上的一层——条幅和对联都能叠。">开</button>
+          <button class="segbtn" data-v="off"
+            data-tip="不画界行，只留字。">关</button>
+        </div>
+        <p class="dnote">界行是叠在排版之上的一层，不是第三种排版模式——条幅、对联都能开。</p>
+
+        <h3 class="dtitle">方向</h3>
+        <div class="seg" id="segRuleDir">
+          <button class="segbtn" data-v="竖"
+            data-tip="竖界（乌丝栏）：每一列左右各一条竖线。&#10;碑帖册页最常见的样子。">竖（分列）</button>
+          <button class="segbtn" data-v="横"
+            data-tip="横界：每一「行」下方一条横线。&#10;竖排时，第 j 行就是各列的第 j 个字。">横（分行）</button>
+        </div>
+
+        <h3 class="dtitle">颜色</h3>
+        <div class="seg" id="segRuleColor">
+          <button class="segbtn" data-v="red"
+            data-tip="朱砂界行。古人用朱砂画界栏，最常见。">朱砂</button>
+          <button class="segbtn" data-v="ink"
+            data-tip="墨色界行，比朱砂沉一点。">墨色</button>
+        </div>
+
+        <h3 class="dtitle">粗细</h3>
+        <div class="seg" id="segRuleWidth">
+          <button class="segbtn" data-v="细"
+            data-tip="发丝线，最像刻本上的乌丝栏。">细</button>
+          <button class="segbtn" data-v="中">中</button>
+          <button class="segbtn" data-v="粗"
+            data-tip="明显一点，远看也分得清列。">粗</button>
+        </div>
+        <p class="dnote">导出的 PNG 里画的也是这几条线，和屏幕上看到的一致。</p>
+
+        <h3 class="dtitle">外框（页边线）</h3>
+        <div class="seg" id="segFrame">
+          <button class="segbtn" data-v="文武"
+            data-tip="一粗一细的双边，也叫文武框：外面粗、里面细。&#10;刻本册页最常见的版框。&#10;框离字多远由页边距决定——下一项调页边距，框会自己跟着走。">文武</button>
+          <button class="segbtn" data-v="单边"
+            data-tip="只画一圈细线。">单边</button>
+          <button class="segbtn" data-v="关"
+            data-tip="不画外框，只留界行（或什么都不留）。">关</button>
+        </div>
+        <p class="dnote">框画在页边距上，所以下一项【间距】调页边距时，框会跟着一起动。</p>
       </section>
 
     </div>

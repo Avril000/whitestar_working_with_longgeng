@@ -117,8 +117,10 @@ try {
   const menu = document.querySelectorAll('#dmenu .dmi');
   check('目录列出全部 5 项（样式/成册/间距/遮罩/朱笔）', menu.length === 5);
   check('只有"样式"是亮的可用的', menu[0].classList.contains('on') && !menu[0].classList.contains('todo'));
-  check('后四项灰着标 todo', menu[1].classList.contains('todo') && menu[4].classList.contains('todo'));
-  check('todo 项也有说明，说清排第几', (menu[1].dataset.tip || '').includes('第 2 项'));
+  check('做完的两项（样式/成册）不灰，后三项灰着标 todo',
+    !menu[1].classList.contains('todo') &&
+    menu[2].classList.contains('todo') && menu[4].classList.contains('todo'));
+  check('todo 项也有说明，说清排第几', (menu[2].dataset.tip || '').includes('第 3 项'));
 
   const bkbtns = document.querySelectorAll('#bookSeg .segbtn');
   check('碑本按钮列出 books.json 里登记的两块碑', bkbtns.length === 2);
@@ -244,8 +246,9 @@ try {
   vd = strip.querySelector('.glyph .vdot');
   check('【再想想】后角标仍是黄（tentative）',
     vd.classList.contains('tentative') && !vd.classList.contains('picked'));
+  // 存下 = 主区域这个字现在用的就是挑的那版（不再查 localStorage，见下）
   check('【再想想】但改动确实存下了',
-    JSON.parse(fakeStore.getItem('glyph_pick_v1') || '{}')['dbt:之#0'] === wantGid);
+    strip.querySelector('.glyph').dataset.gid === wantGid);
 
   // 【选好了】：拍板，角标变绿
   strip.querySelector('.glyph .vdot').click();
@@ -254,16 +257,29 @@ try {
   check('【选好了】收起面板', !vpanel.classList.contains('open'));
   vd = strip.querySelector('.glyph .vdot');
   check('【选好了】后角标变绿', vd.classList.contains('picked'));
-  check('【选好了】写进确认表',
-    JSON.parse(fakeStore.getItem('glyph_pick_ok_v1') || '{}')['dbt:之#0'] === 1);
+  check('【选好了】拍板的就是当前用的那版',
+    strip.querySelector('.glyph').dataset.gid === wantGid);
 
   // 换了版本就该摘掉"已拍板"，避免绿点挂在一个已经不是它的版本上
   strip.querySelector('.glyph .vdot').click();
   document.getElementById('vGrid').querySelectorAll('.vitem')[5].click();
   document.getElementById('vConfirm').click();
-  check('改选后重新确认，记录跟着更新',
-    JSON.parse(fakeStore.getItem('glyph_pick_v1') || '{}')['dbt:之#0'] ===
-    window.DATA.by_char['之'][5]);
+  check('改选后重新确认，用上的就是新挑的那版',
+    strip.querySelector('.glyph').dataset.gid === window.DATA.by_char['之'][5]);
+
+  // 2026-10-25 改：挑的写法只在**当前这句话**里算数，不再写进 localStorage。
+  // 以前跨句子沿用，【道可道非常道】挑的写法会莫名其妙带进【道法不同】。
+  check('挑的写法不再落盘（换句子、关网页都回到自动避复）',
+    fakeStore.getItem('glyph_pick_v1') === null &&
+    fakeStore.getItem('glyph_pick_ok_v1') === null);
+  document.getElementById('input').value = '道法不同';
+  window.render();
+  const daoBox = strip.querySelector('.glyph');
+  check('换一句话，不再沿用上一句挑的写法（回到自动避复）',
+    daoBox.dataset.gid !== wantGid &&
+    !daoBox.querySelector('.vdot').classList.contains('tentative'));
+  document.getElementById('input').value = '之';
+  window.render();
 
   // 自动避复：同一句里同字不同形
   window.clearPick('之', 0);
@@ -352,6 +368,178 @@ try {
     document.getElementById('input').value = single;
     window.render();
     check('只有一个写法的字「' + single + '」不挂角标', strip.querySelector('.vdot') === null);
+
+  // 16. 成册界行：开关 / 方向 / 颜色 / 粗细。它是叠在排版之上的一层
+  const menu2 = document.querySelectorAll('#dmenu .dmi');
+  check('目录里「成册」已经做完，不再是灰的', !menu2[1].classList.contains('todo'));
+
+  document.getElementById('input').value = '上善若水 道法自然';
+  window.render();
+  check('默认不画界行', !strip.classList.contains('ruled'));
+
+  const segR = (id, v) => document.querySelector('#' + id + ' .segbtn[data-v="' + v + '"]');
+  document.getElementById('btnAdjust').click();
+  segR('segRuled', 'on').click();
+  check('草稿里打开界行，主区域不动', !strip.classList.contains('ruled'));
+  check('预览里已经画上界行',
+    document.getElementById('previewStrip').classList.contains('ruled'));
+  check('默认竖界（不挂 ruled-h）',
+    !document.getElementById('previewStrip').classList.contains('ruled-h'));
+
+  segR('segRuleDir', '横').click();
+  check('切成横界，预览挂上 ruled-h',
+    document.getElementById('previewStrip').classList.contains('ruled-h'));
+
+  // 线色线宽挂在**纸**上（strip 和外框的伪元素都要用），不挂在 strip 上
+  const pvPaper2 = document.getElementById('previewPaper');
+  segR('segRuleColor', 'ink').click();
+  check('墨色界行：--rule 换成墨色',
+    pvPaper2.style.getPropertyValue('--rule').indexOf('58, 54, 48') >= 0);
+  segR('segRuleColor', 'red').click();
+  check('朱砂界行：--rule 换回朱砂',
+    pvPaper2.style.getPropertyValue('--rule').indexOf('158, 61, 50') >= 0);
+
+  segR('segRuleWidth', '粗').click();
+  check('粗细三档：粗 = 3px',
+    pvPaper2.style.getPropertyValue('--rule-w') === '3px');
+  segR('segRuleWidth', '细').click();
+  check('粗细三档：细 = 1px',
+    pvPaper2.style.getPropertyValue('--rule-w') === '1px');
+
+  document.getElementById('btnApply').click();
+  check('应用后主区域也画上界行', strip.classList.contains('ruled'));
+  check('界行是叠加层：对联排版照样能用', (() => {
+    panelSet('#segLayout', '对联');
+    const ok = strip.classList.contains('duilian') && strip.classList.contains('ruled');
+    panelSet('#segLayout', '条幅');
+    return ok;
+  })());
+
+  // 横界必须是**贯穿**的：线撑满整幅，不是每列一段（珍宝馆的界行是贯穿的）
+  segR('segRuleDir', '横').click();
+  document.getElementById('btnApply').click();
+  const hl = strip.querySelectorAll('.rule-h');
+  check('横界每行一条贯穿线（8 字 8 条）', hl.length === 8);
+  check('贯穿线带行号，位置按行算',
+    hl[0].style.getPropertyValue('--i') === '0' &&
+    hl[7].style.getPropertyValue('--i') === '7');
+  segR('segRuleDir', '竖').click();
+  document.getElementById('btnApply').click();
+  check('切回竖界就没有横贯线了', strip.querySelectorAll('.rule-h').length === 0);
+
+  // 外框（版框）：关 / 单边 / 文武（一粗一细）。**只框字区**，落款在框外下方
+  const mainPaper2 = document.getElementById('mainPaper');
+  const pf = () => mainPaper2.querySelectorAll('.pframe');
+  check('外框默认是一粗一细的文武框（两条线）',
+    pf().length === 2 &&
+    mainPaper2.querySelector('.pframe.thick') !== null &&
+    mainPaper2.querySelector('.pframe.thin') !== null);
+  segR('segFrame', '单边').click();
+  document.getElementById('btnApply').click();
+  check('单边：只有一条细线',
+    pf().length === 1 && mainPaper2.querySelector('.pframe.thin') !== null);
+  segR('segFrame', '关').click();
+  document.getElementById('btnApply').click();
+  check('关：一条框线都没有', pf().length === 0);
+  check('外框颜色跟着界行颜色走（--rule 挂在纸上，不是 strip 上）',
+    mainPaper2.style.getPropertyValue('--rule').indexOf('158, 61, 50') >= 0);
+  segR('segFrame', '文武').click();
+  document.getElementById('btnApply').click();
+
+  // 回归：框必须在字格排好版**之后**才画。画早了（刚 innerHTML='' 清空完）
+  // 量到的 offsetWidth/Height 是 0，框会缩成一小团贴在纸顶上。
+  const allCols = Array.from(mainPaper2.querySelectorAll('.col'));
+  const firstFrame = mainPaper2.querySelector('.pframe');
+  // 4 = DOCUMENT_POSITION_FOLLOWING（firstFrame 排在最后一个字列之后）
+  check('版框排在字格之后（画早了会量到 0 宽高，框缩成一团）',
+    allCols.length > 0 && firstFrame !== null &&
+    !!(allCols[allCols.length - 1].compareDocumentPosition(firstFrame) & 4));
+  // 根治（2026-10-25）：原碑模式**不再反整张纸**——
+  // 反整张纸会让纸里每加一样装饰就变蓝一次（框、界行、印章、版本角标…报了四次）。
+  // 改成"纸铺黑 + 字给白"，观感一样，纸上的东西一律保持本色。
+  const rubPaper = css.match(/\.paper\.ink-rub\s*\{[^}]*\}/);
+  check('原碑模式不反整张纸，改成纸铺黑 + 字给白',
+    rubPaper !== null && !/filter/.test(rubPaper[0]) &&
+    /background:\s*#0A0B0E/.test(rubPaper[0]) && /--ink:/.test(rubPaper[0]));
+  check('版框、界行、印章都不再需要反色补丁（留着反而会反成蓝色）',
+    !/\.paper\.ink-rub\s+\.(pframe|rule-h|rule-v|seal)\s*\{/.test(css));
+  check('版本角标也不需要特殊处理（整纸不反，角标就是本色）',
+    !/\.paper\.ink-rub[^{]*\.vdot/.test(css));
+  // 版本面板同病（面板里也有朱砂提示：「标红」「另有 N 处已用」）
+  const rubVers = css.match(/\.versions\.ink-rub\s*\{[^}]*\}/);
+  check('版本面板也不反整幅（改成黑底白字）',
+    rubVers !== null && !/filter/.test(rubVers[0]) && /--ink:/.test(rubVers[0]));
+  check('面板里的朱砂提示保持本色（撞字的「已用」、说明里的「标红」）',
+    !/\.versions\.ink-rub[^{]*\.(warn|dup)/.test(css) &&
+    /\.vhint b\.warn\s*\{\s*color:\s*#9E3D32/.test(css));
+
+  // 落款：集字内容单独成行（挤在一行会上下错位，且 canvas 不会自动换行）
+  const cr = document.getElementById('credit');
+  check('落款分成两行：碑名作者 + 集字内容', cr.textContent.split('\n').length === 2);
+  check('第一行是「碑名　作者　集字」', cr.textContent.split('\n')[0].indexOf('集字') >= 0);
+  check('第二行集字内容单独占一行',
+    cr.textContent.split('\n')[1].indexOf('上善若水 道法自然'.replace(/\s/g, '')) >= 0);
+  check('落款保留换行（white-space: pre-line）',
+    /pre-line/.test(css.match(/\.credit\s*\{[^}]*\}/)[0]));
+
+  // jsdom 不做布局，offsetWidth/Height 恒为 0，上面只能验 DOM 顺序。
+  // 这里给字列打桩造出尺寸，真正验一次"只框字区"的并集算法：
+  // 拿 strip 的盒子画会撑满整张纸（桩里给 600），拿字列并集画才是字区（90）。
+  const HProto = Object.getPrototypeOf(document.createElement('div'));
+  const saved = {};
+  ['offsetWidth', 'offsetHeight', 'offsetLeft', 'offsetTop'].forEach(function (k) {
+    saved[k] = Object.getOwnPropertyDescriptor(HProto, k);
+    Object.defineProperty(HProto, k, {
+      configurable: true,
+      get: function () {
+        if (!this.classList || !this.classList.contains('col')) return 0;
+        if (k === 'offsetWidth') return 90;
+        if (k === 'offsetHeight') return 180;
+        if (k === 'offsetTop') return 0;
+        var p = this.parentNode;
+        return p ? Array.prototype.indexOf.call(p.children, this) * 120 : 0;
+      }
+    });
+  });
+  segR('segFrame', '关').click();
+  document.getElementById('btnApply').click();
+  segR('segFrame', '文武').click();
+  document.getElementById('btnApply').click();
+  const thinF = mainPaper2.querySelector('.pframe.thin');
+  check('框按字列并集定位，不是按整条 strip（拿 strip 会撑满纸宽）',
+    thinF !== null && thinF.style.width === '106px' && thinF.style.left === '-8px');
+  check('框的高度同样取自字列（上下各留 8px）',
+    thinF !== null && thinF.style.height === '196px' && thinF.style.top === '-8px');
+
+  // 竖界：改成 JS 画的独立元素（原来是字列的 border，会被整纸反色带成蓝色）
+  segR('segRuled', 'on').click();
+  segR('segRuleDir', '竖').click();
+  segR('segRuleWidth', '细').click();
+  document.getElementById('btnApply').click();
+  const vs = mainPaper2.querySelectorAll('.rule-v');
+  check('竖界是独立元素，每列左右各一条',
+    vs.length === mainPaper2.querySelectorAll('.col').length * 2 && vs.length > 0);
+  check('竖界线按字列的实际盒子定位（细 = 1px，贴在列的外沿）',
+    vs.length > 0 && vs[0].style.width === '1px' && vs[0].style.left === '0px' &&
+    vs[0].style.height === '180px');
+  check('竖界不再画在字列的 border 上（border 会跟着整纸 invert）',
+    !/border-(left|right)/.test(css.match(/\.strip\.ruled\s+\.col\s*\{[^}]*\}/)[0]));
+  check('被标注的格子在原碑模式下也给了深色底（浅底在黑纸上像打补丁）',
+    /\.paper\.ink-rub\s+\.glyph\.borrowed/.test(css));
+  segR('segRuled', 'off').click();
+  document.getElementById('btnApply').click();
+  check('关掉界行后竖界线也一并清掉', mainPaper2.querySelectorAll('.rule-v').length === 0);
+
+  ['offsetWidth', 'offsetHeight', 'offsetLeft', 'offsetTop'].forEach(function (k) {
+    if (saved[k]) Object.defineProperty(HProto, k, saved[k]);
+    else delete HProto[k];
+  });
+
+  // 收尾：关掉界行，恢复默认，免得影响后面的用例
+  segR('segRuled', 'off').click();
+  document.getElementById('btnApply').click();
+  document.getElementById('drawerClose').click();
+  check('关掉界行后主区域不再画线', !strip.classList.contains('ruled'));
 
   // 9b. 版本面板里的写法缩略图也跟着字色走（挑写法时看到的得和主区域一致）
   document.getElementById('input').value = '之';
@@ -470,6 +658,10 @@ try {
   console.log('  ✗ 执行异常: ' + e.message);
   console.log(e.stack.split('\n').slice(0, 4).join('\n'));
 }
+
+// 面板文案：字色要写明是「全局」的，不然会以为是给某一个字上色（和朱笔混淆）
+check('字色标注了「全局」', /字色（全局）/.test(html));
+check('字色下面说明了是整幅一起变', /整幅字的颜色/.test(html));
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);
