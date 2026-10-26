@@ -71,6 +71,13 @@ try {
   check('简体「画」能映射到碑上的「畫」出图', imgs.length === 1);
   check('画面右上角/左下角有简体角标', strip.querySelector('.glyph .variant') !== null);
 
+  // 2b. 映射要"挑库里真有的那一个"：表里第一候选是繁体、碑上写的却是简体时，
+  //     不能因为只取第一候选就把明明有的字判成缺字（静 → 表里是「靜」，碑上是「静」）
+  document.getElementById('input').value = '静';
+  window.render();
+  check('库里存的是简体就取简体（「静」不被映射成「靜」而误判缺字）',
+    strip.querySelectorAll('img').length === 1);
+
   // 3. 缺字：库里没有的字如实留空
   document.getElementById('input').value = '嗎';
   window.render();
@@ -124,10 +131,13 @@ try {
   const bkbtns = document.querySelectorAll('#bookSeg .segbtn');
   check('碑本按钮列出 books.json 里登记的两块碑', bkbtns.length === 2);
   check('多宝塔碑（有字）可选且默认选中', bkbtns[0].classList.contains('on') && !bkbtns[0].classList.contains('off'));
-  check('颜勤礼碑（未入库）灰着，名字上写明待入库',
-    bkbtns[1].classList.contains('off') && bkbtns[1].textContent.includes('待入库'));
-  check('颜勤礼碑说明里讲明绝不拿别碑顶上',
-    (bkbtns[1].dataset.tip || '').includes('绝不拿别碑'));
+  // 2026-10-26：颜勤礼碑的卡片收回来、跑完收卡片管线，按钮自己亮了（前端一行没改）
+  check('颜勤礼碑入库后自己亮起来（不灰、不再标待入库）',
+    !bkbtns[1].classList.contains('off') && !bkbtns[1].textContent.includes('待入库'));
+  check('可点的碑本说明里报出这一块入库了几个字形',
+    (bkbtns[1].dataset.tip || '').includes('个字形'));
+  check('没录字的碑才灰着：库里没有第三种碑可冒充',
+    Array.from(bkbtns).every(b => !b.classList.contains('off')));
   check('详情格只显示选中那块的馆藏', document.getElementById('bookInfo').textContent.includes('西安碑林博物馆藏'));
   check('详情格带珍宝馆原帖链接', document.querySelector('#bookInfo a.bksrc') !== null);
   check('详情格报出入库字数', document.getElementById('bookInfo').textContent.includes('个字形已入库'));
@@ -218,7 +228,9 @@ try {
   document.getElementById('drawerClose').click();
 
   // 8. 多版本选择：角标 → 展开 → 选一个 → 同步 → 记忆 → 恢复默认
-  const nZhi = window.DATA.by_char['之'].length;
+  // ⚠️ by_char 是跨碑的大索引（之 在两块碑里合计 57 个），
+  //    角标上写的必须是**当前这块碑**里的写法数——别的碑有也不许拿来用。
+  const nZhi = window.versionsOf('之', 'dbt').length;
   document.getElementById('input').value = '之';
   window.render();
   let vd = strip.querySelector('.glyph .vdot');
@@ -616,19 +628,49 @@ try {
   window.render();
   }
 
-  // 10. 红线：颜勤礼碑还没录数据，切过去必须如实留空，
-  //     绝不能拿多宝塔碑的字顶上（否则用户会以为是颜体）
-  window.state.book = 'yql';   // dbt -> yql（未入库，卡片是灰的，直接切状态）
-  window.render();
-  document.getElementById('input').value = '上善若水';
-  document.getElementById('input').dispatchEvent(new window.Event('input', { bubbles: true }));
-  check('颜勤礼碑无数据时全部如实留空',
-    strip.querySelectorAll('.glyph.missing').length === 4 &&
-    strip.querySelectorAll('img').length === 0);
-  check('颜勤礼碑下也不挂多版本角标', strip.querySelector('.vdot') === null);
+  // 10. 第二块碑（颜勤礼碑 2026-10-26 入库）：碑本切换走一遍真的，
+  //     再双向验红线——两块碑各成一套，谁也不许拿谁的字顶。
+  const setInput = (s) => {
+    document.getElementById('input').value = s;
+    document.getElementById('input').dispatchEvent(new window.Event('input', { bubbles: true }));
+    window.render();
+  };
+  const setBook = (i) => {
+    document.getElementById('btnAdjust').click();
+    document.querySelectorAll('#bookSeg .segbtn')[i].click();
+    document.getElementById('btnApply').click();
+    document.getElementById('drawerClose').click();
+  };
+
+  setBook(1);
+  check('点了颜勤礼碑，按钮自己变选中',
+    document.querySelectorAll('#bookSeg .segbtn')[1].classList.contains('on'));
+  check('切换后底部状态栏报「颜勤礼碑」',
+    document.getElementById('srcInfo').textContent.includes('颜勤礼碑'));
+
+  setInput('江');
+  check('颜勤礼碑模式下出的是颜勤礼碑的字（江 只有这块碑有）',
+    strip.querySelectorAll('img').length === 1 &&
+    /^y/.test(strip.querySelector('.glyph').dataset.gid || ''));
+
+  setBook(0);
+  setInput('江');
+  check('多宝塔碑没有「江」，如实留空（不拿颜勤礼碑的字顶）',
+    strip.querySelectorAll('img').length === 0 &&
+    strip.querySelectorAll('.glyph.missing').length === 1);
+
+  setInput('静');
+  check('多宝塔碑有「静」，正常出图', strip.querySelectorAll('img').length === 1);
+  window.state.book = 'yql';
+  window.syncPanel();
+  setInput('静');
+  check('颜勤礼碑没有「静」，也如实留空（反向一样不串碑）',
+    strip.querySelectorAll('img').length === 0 &&
+    strip.querySelectorAll('.glyph.missing').length === 1);
+
   window.state.book = 'dbt';   // 切回多宝塔碑
   window.syncPanel();
-  window.render();
+  setInput('上善若水 道法自然');
 
   // 11. 三种样式：墨色 / 朱砂 / 原图
   //     字形图是「透明底 + 单色墨」，颜色事后给——所以三种样式不额外存任何图

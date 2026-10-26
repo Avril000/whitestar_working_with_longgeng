@@ -32,6 +32,9 @@ dist/
 *.bak
 ~$*.docx
 
+# ---- 排查时留的一次性底稿（不进仓库，随时可再生成/可删）----
+data/metadata/_backup*/
+
 # 服务器连接信息（地址/账号/端口）：只存本地，绝不进仓库
 # 密码一律不存——scp / ssh 会在窗口里当场问
 deploy_config.json

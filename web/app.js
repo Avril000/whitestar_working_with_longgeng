@@ -122,9 +122,19 @@ function el(id) {
 /* ---------- 字形查找 ---------- */
 
 // 简体 → 碑上的繁体/异体（画→畫、载→載…），没有映射就原样返回
+// 简体 → 碑上的写法。
+// 映射表给的是一个候选列表（简→繁常常不止一种），取**库里真有的那一个**；
+// 一个都没有才退回原字，让缺字如实留空。
+// ⚠️ 不能只取 vs[0]：有些字库里存的恰恰就是简体本身（比如「静」，表里第一候选是「靜」，
+//    而碑上是「静」），只取第一个会把明明有的字判成缺字（10-26 在「宁静致远」上踩到）。
 function mapChar(ch) {
-  var vs = (window.DATA.variants || {})[ch];
-  return vs ? vs[0] : ch;
+  var idx = window.DATA.by_char || {};
+  if (idx[ch]) return ch;                       // 库里本来就有这个写法，直接用
+  var vs = (window.DATA.variants || {})[ch] || [];
+  for (var i = 0; i < vs.length; i++) {
+    if (idx[vs[i]]) return vs[i];               // 表里挑一个库里真有的
+  }
+  return vs.length ? vs[0] : ch;                // 都没有：照旧给第一候选（缺字如实留空）
 }
 
 function buildRecIndex() {
