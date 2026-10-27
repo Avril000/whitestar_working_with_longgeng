@@ -122,10 +122,10 @@ try {
   check('样式窗格默认打开', document.querySelector('.dpane[data-key="style"]').classList.contains('on'));
 
   const menu = document.querySelectorAll('#dmenu .dmi');
-  check('目录列出全部 5 项（样式/成册/间距/遮罩/朱笔）', menu.length === 5);
+  check('目录列出全部 6 项（样式/成册/间距/遮罩/朱笔/借字）', menu.length === 6);
   check('只有"样式"是亮的可用的', menu[0].classList.contains('on') && !menu[0].classList.contains('todo'));
-  check('五项全部做完，目录里没有灰着的了',
-    Array.from(menu).length === 5 &&
+  check('六项全部做完，目录里没有灰着的了',
+    Array.from(menu).length === 6 &&
     Array.from(menu).every(b => !b.classList.contains('todo')));
 
   const bkbtns = document.querySelectorAll('#bookSeg .segbtn');
@@ -671,6 +671,150 @@ try {
   window.state.book = 'dbt';   // 切回多宝塔碑
   window.syncPanel();
   setInput('上善若水 道法自然');
+
+  // 10b. 借字（2026-10-27）：三档开关 + 借了必须认得出来
+  const setBorrow = (v) => {
+    document.getElementById('btnAdjust').click();
+    document.querySelector('#segBorrow .segbtn[data-v="' + v + '"]').click();
+    document.getElementById('btnApply').click();
+    document.getElementById('drawerClose').click();
+  };
+  const toggleBookCb = (on) => {
+    document.getElementById('btnAdjust').click();
+    const cb = document.querySelector('#borrowBooks input[type="checkbox"]');
+    cb.checked = on;
+    cb.dispatchEvent(new window.Event('change', { bubbles: true }));
+    document.getElementById('btnApply').click();
+    document.getElementById('drawerClose').click();
+  };
+
+  setInput('江');
+  check('默认不借：多宝塔碑没有「江」就如实留空',
+    strip.querySelectorAll('img').length === 0 &&
+    strip.querySelectorAll('.glyph.missing').length === 1);
+
+  document.getElementById('btnAdjust').click();
+  check('可借的碑里没有当前底本自己',
+    document.querySelectorAll('#borrowBooks input').length === 1 &&
+    !Array.from(document.querySelectorAll('#borrowBooks label'))
+      .some(l => l.textContent.includes('多宝塔')));
+  document.getElementById('drawerClose').click();
+
+  setBorrow('fill');
+  setInput('江');
+  check('补缺档：碑里没有的「江」从别碑借来了', strip.querySelectorAll('img').length === 1);
+  const borBox = strip.querySelector('.glyph');
+  check('借来的字标了 borrowed（朱砂虚线框 + 角标）',
+    borBox && borBox.classList.contains('borrowed'));
+  check('借的确实是别的碑的字（不是本碑自己的）',
+    borBox && /^y/.test(borBox.dataset.gid || ''));
+  check('悬停说明写明这是借来的、出自哪块碑',
+    (borBox.dataset.tip || '').includes('借') &&
+    (borBox.dataset.tip || '').includes('颜勤礼'));
+  check('状态栏如实报出借了字',
+    document.getElementById('stateInfo').textContent.includes('借'));
+
+  toggleBookCb(false);
+  setInput('江');
+  check('把唯一可借的碑勾掉后，「江」又如实留空（没的借就不造）',
+    strip.querySelectorAll('img').length === 0 &&
+    strip.querySelectorAll('.glyph.missing').length === 1);
+  toggleBookCb(true);
+
+  setBorrow('mix');
+  setInput('山');
+  const nMix = window.versionsInBook('山', 'dbt').length + window.versionsInBook('山', 'yql').length;
+  check('混搭档：本碑有这个字，也把别碑写法并进来',
+    parseInt(strip.querySelector('.vdot').textContent, 10) === nMix);
+  strip.querySelector('.vdot').click();
+  check('版本面板里借来的写法套了虚线标识',
+    document.querySelectorAll('#vGrid .vitem.vborrow').length ===
+    window.versionsInBook('山', 'yql').length);
+  check('版本面板写明借自哪一块碑',
+    (document.querySelector('#vGrid .vbfrom') || {}).textContent &&
+    document.querySelector('#vGrid .vbfrom').textContent.includes('颜勤礼'));
+  window.closeVersions();
+
+  setBorrow('off');
+  setInput('山');
+  check('切回不借：别碑的写法立刻收回，只剩本碑的',
+    parseInt(strip.querySelector('.vdot').textContent, 10) ===
+    window.versionsInBook('山', 'dbt').length);
+
+  // 设计稿里标过的两个风险点
+  setBorrow('fill');
+  setInput('江江');
+  const jj = Array.from(strip.querySelectorAll('.glyph')).map(b => b.dataset.gid);
+  check('同一个字借来多个写法时，也能自动避复（第 2 个 ≠ 第 1 个）',
+    jj.length === 2 && jj[0] && jj[1] && jj[0] !== jj[1]);
+  check('借来的两个字都标了 borrowed',
+    strip.querySelectorAll('.glyph.borrowed').length === 2);
+
+  setBook(1);   // 切到颜勤礼碑——那里本来就有「江」
+  setInput('江');
+  const ownBox = strip.querySelector('.glyph');
+  check('切到有这个字的碑，「江」变成本碑写法、不再是借来的',
+    ownBox && /^y/.test(ownBox.dataset.gid) && !ownBox.classList.contains('borrowed'));
+  setBook(0);
+
+  // 白星 2026-10-26 提的那个场景：多宝塔碑里凑「江山如画」
+  setInput('江山如画');
+  setBorrow('fill');
+  setInput('江山如画');
+  check('补缺档下「江山如画」在多宝塔碑里凑齐了（只有「江」是借的）',
+    strip.querySelectorAll('img').length === 4 &&
+    strip.querySelectorAll('.glyph.borrowed').length === 1 &&
+    strip.querySelectorAll('.glyph.missing').length === 0);
+  setBorrow('off');
+  setInput('江山如画');
+  check('关掉借字，同一句立刻退回如实留空的老样子',
+    strip.querySelectorAll('img').length === 3 &&
+    strip.querySelectorAll('.glyph.missing').length === 1);
+
+  /* 10-27 报的 bug：导出时落款的借用说明一个字都没出，红框却画了。
+     根因是「是不是借来的」这个判定写了两处，只改了画框那一处，
+     收集落款文案那一处还是老的 nature 判定（两块碑 nature 都是「原碑拓本」，永远不成立）。
+     所以这里立一条护栏：**这个判定全项目只能有一处**。 */
+  const natureChecks = (appJs.match(/nature\s*!==\s*'原碑拓本'/g) || []).length;
+  check('「是否借来的」判定全项目只有一处（都在 isBorrowed 里）', natureChecks === 1);
+  check('落款的借用说明走的是 isBorrowed，不是老的 nature 判定',
+    /isBorrowed\(rec, state\)\s*\)\s*\{\s*borrowLog\.push/.test(appJs));
+
+  /* 编辑时明示，成品时干净（2026-10-27 白星拍板）：
+     屏幕上有红框（编辑时看得清哪个是借的），导出一律不画（成品要能拿出去展示）。
+     诚实性不靠红框——靠落款那句按碑汇总的借用说明。 */
+  check('导出不画借字的红框（成品要能用）',
+    !/isBorrowed\(rec, state\)\s*\)\s*\{\s*\n\s*var q/.test(appJs));
+  check('借字的出处改由落款那一句担着（红框没了，说明不能没）',
+    /drawWrapped\(ctx, borrowSummary\(borrowLog\)/.test(appJs));
+  check('屏幕上照样有红框（编辑时要看得清）',
+    /box\.classList\.add\('borrowed'\)/.test(appJs));
+
+  // 落款：按碑汇总成一行，不逐字列
+  const bs = window.borrowSummary;
+  check('落款一句话汇总（只借一块碑时）',
+    bs([{ ch: '江', book: 'yql' }, { ch: '書', book: 'yql' }]) === '其中 2 字借自《颜勤礼碑》');
+  check('借多块碑也一行写完（不把落款撑成小作文）',
+    bs([{ ch: '江', book: 'yql' }, { ch: '山', book: 'yql' }, { ch: '之', book: 'dbt' }]) ===
+    '其中 3 字借自《颜勤礼碑》2、《多宝塔碑》1');
+
+  // 「本句用字清单」
+  setBorrow('fill');
+  setInput('江山如画');
+  document.getElementById('btnAdjust').click();
+  const blist = document.getElementById('borrowList');
+  document.getElementById('borrowTip').click();
+  check('点那句活提示能展开本句用字清单', blist.hidden === false);
+  check('清单列出这一句的每一个字', blist.querySelectorAll('.brow').length === 4);
+  check('清单里借来的那一行写明出自哪块碑',
+    Array.from(blist.querySelectorAll('.brow.is-borrow .bfrom'))
+      .some(e => e.textContent.includes('借自《颜勤礼碑》')));
+  check('清单里本碑的字标明是本碑的（借与本一眼分得开）',
+    blist.querySelectorAll('.brow:not(.is-borrow):not(.is-miss)').length === 3);
+  document.getElementById('borrowTip').click();
+  check('再点一次把清单收起来', blist.hidden === true);
+  document.getElementById('drawerClose').click();
+  setBorrow('off');
 
   // 11. 三种样式：墨色 / 朱砂 / 原图
   //     字形图是「透明底 + 单色墨」，颜色事后给——所以三种样式不额外存任何图

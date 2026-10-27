@@ -309,6 +309,32 @@
 导出 PNG 里也是这个颜色，打印出来照样看得出重点。</p>
       </section>
 
+      <section class="dpane" data-key="borrow">
+        <h3 class="dtitle">借字</h3>
+        <div class="seg" id="segBorrow">
+          <button class="segbtn" data-v="off"
+            data-tip="不借，只认当前这块碑。&#10;碑里没有的字就如实留空——这是默认，也是本项目的红线。">不借</button>
+          <button class="segbtn" data-v="fill"
+            data-tip="只有这块碑里没有的字，才从别的碑借一个补上。&#10;本碑有的字不会动——保住「忠实一块碑」。">补缺</button>
+          <button class="segbtn" data-v="mix"
+            data-tip="本碑有这个字，也把别的碑的写法一并列出来让你挑。&#10;古人集字确有「集古字」的做法，但串着用会失了一碑的笔意。">混搭</button>
+        </div>
+
+        <div class="borrowbox">
+          <span class="blabel">可以从这些碑借</span>
+          <div class="bks" id="borrowBooks"></div>
+        </div>
+
+        <p class="blive blive-btn" id="borrowTip" role="button" tabindex="0">还没开始借字</p>
+        <div class="blist" id="borrowList" hidden></div>
+        <p class="dnote">借来的字在纸上套<span class="ibor">朱砂虚线框</span>，右下角有个小点；
+鼠标停上去会写明它出自哪一块碑。点上面那行字，还能展开整句的用字清单。
+<br>⚠️ <b>导出 PNG 时不画这个红框</b>——成品是要拿去展示的，套一圈红框就没法用了。
+借了哪些字，由<b>落款那句「其中 N 字借自《某碑》」</b>担着：
+出处写在明面上，软件的责任尽到了；成品的版面留给字自己。
+<br>勾掉的碑这次不参与；当前底本自己永远不出现在列表里。</p>
+      </section>
+
     </div>
     <nav class="dmenu" id="dmenu"></nav>
   </div>

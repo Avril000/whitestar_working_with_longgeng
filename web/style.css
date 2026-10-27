@@ -1272,3 +1272,96 @@ body.previewing.zoomed main { padding-left: 0; }
 }
 
 .bksrc:hover { border-bottom-style: solid; }
+
+/* ---- 借字窗格（2026-10-27）----
+   借来的写法在纸上套朱砂虚线框；这里是把「哪些碑可以借」摆出来 */
+.borrowbox {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border: 1px solid #EAE5D6;
+  border-radius: 8px;
+  background: #FBF9F3;
+}
+.blabel { display: block; font-size: 12px; color: #8A8474; margin-bottom: 8px; }
+.bks { display: flex; flex-wrap: wrap; gap: 8px; }
+.bks label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border: 1px solid #E2DCCB;
+  border-radius: 999px;
+  background: #FFFCF6;
+  font-size: 12px;
+  color: #5B5548;
+  cursor: pointer;
+  user-select: none;
+}
+.bks label:hover { border-color: #C89B3C; }
+.bks input { margin: 0; accent-color: #9E3D32; }
+.blive { margin-top: 10px; font-size: 12px; color: #8A8474; }
+.blive.on { color: #9E3D32; }
+.blive-btn { cursor: pointer; user-select: none; }
+.blive-btn:hover { text-decoration: underline; }
+.blive-btn::after { content: ' ⌄'; }
+
+/* 「本句用字清单」：每个字一行，写清它是本碑的、借的、还是缺的 */
+.blist {
+  margin-top: 8px;
+  max-height: 190px;
+  overflow-y: auto;
+  border: 1px solid #EAE5D6;
+  border-radius: 8px;
+  background: #FFFCF6;
+  padding: 6px 0;
+}
+.blist[hidden] { display: none; }
+.brow {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 4px 12px;
+  font-size: 12px;
+  color: #5B5548;
+  line-height: 1.5;
+}
+.brow + .brow { border-top: 1px dotted #EFE9DA; }
+.brow .bch {
+  width: 1.6em;
+  flex: none;
+  font-size: 14px;
+  color: #2C2C2A;
+}
+.brow .bfrom { flex: 1; }
+.brow.is-borrow .bfrom { color: #9E3D32; }
+.brow.is-miss .bfrom { color: #8A8474; }
+.brow .btag {
+  flex: none;
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  border: 1px solid #E2DCCB;
+  color: #8A8474;
+}
+.brow.is-brush .btag { border-color: #C9A79F; color: #9E3D32; }
+.ibor {
+  display: inline-block;
+  padding: 0 6px;
+  border: 1px dashed #9E3D32;
+  border-radius: 4px;
+  color: #9E3D32;
+}
+
+/* 借来的字 hallmark：右下角那个小点（朱笔/缺字各有自己的说法，别混） */
+.glyph.borrowed::after { z-index: 2; }
+
+/* 版本面板里，借来的写法要一眼分得出：虚线框 + 标出碑名 */
+.vitem.vborrow { border-style: dashed; border-color: #C0A79E; background: #FDF7F5; }
+.vitem.vborrow .vbfrom {
+  display: block;
+  font-size: 11px;
+  color: #9E3D32;
+  margin-top: 2px;
+}
+.versions.ink-rub .vitem.vborrow { background: #1E1A18; border-color: #6B4A44; }
+.versions.ink-rub .vitem.vborrow .vbfrom { color: #D08A7C; }

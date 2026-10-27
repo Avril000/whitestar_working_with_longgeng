@@ -43,7 +43,11 @@ var state = {
   gap: 8, rowGap: 34, pad: 34,
   // 遮罩：叠在每个字格上的临帖辅助线。关 / 田字格 / 米字格 / 九宫格
   mask: '关',
-  brushOn: false   // 朱笔标注的**开关**（挑了哪些字在 brushSet 里，见下）
+  brushOn: false,   // 朱笔标注的**开关**（挑了哪些字在 brushSet 里，见下）
+  // 借字三档：off 不借（默认，只认本碑）/ fill 只补齐碑里没有的字 / mix 连有字的也能换别碑写法
+  borrow: 'off',
+  // 允许从哪几块碑借（碑代号数组）。不设 = 所有已入库的其他碑都可借
+  borrowBooks: null
 };
 
 /* 朱笔：被标出来的那些字。键和版本选择同一套（碑:字#本句第几次），
@@ -51,6 +55,7 @@ var state = {
    ⚠️ 这份**不走 draft**：朱笔是直接在主区域点字标出来的，点了就该立刻看见，
    不像调参数那样需要"先预览、后应用"。换句话就清空（和版本选择同规矩）。 */
 var brushSet = {};
+var lastBorrowed = 0;   // 主区域（已应用）这一句借了几个字，面板读它报数
 function brushKey(ch, idx, book) { return pickKey(ch, idx, book); }
 function isBrushed(ch, idx, book) { return !!brushSet[brushKey(ch, idx, book)]; }
 function toggleBrush(ch, idx, book) {
@@ -93,7 +98,8 @@ var SECTIONS = [
   { key: 'album', name: '成册', ready: true, todo: '成册界行：给整幅加线框——颜色、方向（横竖）、粗细，以及框离首尾字留多远。做成开关，条幅和对联都能叠。' },
   { key: 'space', name: '间距', ready: true },
   { key: 'mask', name: '遮罩', ready: true },
-  { key: 'brush', name: '朱笔', ready: true }
+  { key: 'brush', name: '朱笔', ready: true },
+  { key: 'borrow', name: '借字', ready: true }
 ];
 var curSection = 'style';
 
@@ -175,16 +181,84 @@ function pickKey(ch, idx, book) {
   return (book || state.book) + ':' + mapChar(ch) + '#' + (idx || 0);
 }
 
-// 某个字在指定碑里的全部版本（已核对的排在前面）
-// 只认这一块碑：别的碑有这个字也不许拿来用，否则就变成拿多宝塔碑的字冒充颜勤礼碑了
-function versionsOf(ch, book) {
+// 【内核】某个字在**指定那一块碑**里的全部版本。别的碑一概不看。
+function versionsInBook(ch, book) {
   var ids = (window.DATA.by_char || {})[mapChar(ch)] || [];
   var out = [];
   for (var i = 0; i < ids.length; i++) {
     var g = REC[ids[i]];
-    if (g && g.book === (book || state.book)) out.push(ids[i]);
+    if (g && g.book === book) out.push(ids[i]);
   }
   return out;
+}
+
+// 本碑的写法。红线版本保持原样——没开借字时，它就是全部候选。
+function versionsOf(ch, book) {
+  return versionsInBook(ch, (book || state.book));
+}
+
+/* ---------- 借字（2026-10-27） ----------
+   碑里没有的字，以前只能留空。现在可以从别的碑借一个来补上——
+   但借来的字必须一眼看得出是借的（朱砂虚线框 + 落款写明出处），
+   绝不 pretending 是本碑自己的字。 */
+
+// 当前这套设置下，允许从哪几块碑借：
+// ① 必须真有字（没入库的碑不列）② 不能是当前底本自己 ③ 用户在面板里勾了才算
+// 没设过（undefined）= 全都可借——省得用户开了档却还是缺字、以为没生效
+function borrowableBooks(cfg) {
+  cfg = cfg || state;
+  var has = booksWithGlyphs();
+  var all = Object.keys(window.DATA.books || {}).filter(function (k) {
+    return k !== cfg.book && has[k];
+  });
+  var picked = cfg.borrowBooks;
+  if (!picked) return all;
+  return all.filter(function (k) { return picked.indexOf(k) >= 0; });
+}
+
+// 某个字在**可借的那些碑**里的全部写法
+function borrowedVersions(ch, cfg) {
+  var out = [];
+  borrowableBooks(cfg).forEach(function (bk) {
+    versionsInBook(ch, bk).forEach(function (gid) { out.push(gid); });
+  });
+  return out;
+}
+
+/* 落款那句借用说明：**按碑汇总成一行**。
+   逐字列（「江」借自《颜勤礼碑》，西安碑林博物馆藏……）字一多就把落款撑成一篇小作文
+   ——白星 10-27 提的。但只写个总数又不诚实，人家不知道是从哪儿借的。
+   所以折中：总数 + 每块碑各借了几个，一行写完，出处照样写得明明白白。
+     一块碑：  其中 3 字借自《颜勤礼碑》
+     多块碑：  其中 5 字借自《颜勤礼碑》3、《九成宫》2 */
+function borrowSummary(log) {
+  var by = {}, total = 0, names = [];
+  (log || []).forEach(function (b) {
+    var name = ((window.DATA.books || {})[b.book] || {}).name || b.book;
+    if (!by[name]) { by[name] = 0; names.push(name); }
+    by[name]++;
+    total++;
+  });
+  if (!total) return '';
+  var parts = names.map(function (n) {
+    return '《' + n + '》' + (names.length > 1 ? by[n] : '');
+  });
+  return '其中 ' + total + ' 字借自' + parts.join('、');
+}
+
+// 当前底本的碑名（说人话用：《多宝塔碑》而不是 dbt）
+function cfgName(cfg) {
+  var b = (window.DATA.books || {})[(cfg || state).book];
+  return (b && b.name) || '本碑';
+}
+
+// 这个字是不是"借来的"——**判碑**，不判 nature。
+// （两块碑的 nature 都写着「原碑拓本」，以前那句按 nature 判的老判定永远成立不了，
+//   借字因此一直是死的。谁要再判定借字，一律调这个函数，别自己写条件）
+function isBorrowed(rec, cfg) {
+  if (!rec) return false;
+  if (rec.nature && rec.nature !== '原碑拓本') return true;
+  return !!rec.book && rec.book !== (cfg || state).book;
 }
 
 // 综合出「本句第 idx 次出现的这个字」最终用哪个版本
@@ -193,8 +267,23 @@ function versionsOf(ch, book) {
 //   versions 全部版本
 //   picked   是否手动挑过（没挑过就是自动避复给的）
 //   ok       是否拍板了（决定角标是绿是黄）
-function resolveGlyph(ch, idx, book) {
-  var versions = versionsOf(ch, book);
+function resolveGlyph(ch, idx, book, cfg) {
+  cfg = cfg || state;
+  book = book || cfg.book;
+  var mode = cfg.borrow || 'off';
+  var own = versionsInBook(ch, book);
+
+  // 三档开关的分流点：
+  //   不借  —— 任何时候只认本碑（红线，老规矩）
+  //   补缺  —— 本碑有就用本碑；本碑没有，才去借
+  //   混搭  —— 本碑有也把别碑的写法并进来，让想串着用的人自己挑
+  var versions;
+  if (own.length) {
+    versions = (mode === 'mix') ? own.concat(borrowedVersions(ch, cfg)) : own;
+  } else {
+    versions = (mode === 'off') ? [] : borrowedVersions(ch, cfg);
+  }
+
   if (!versions.length) {
     return { rec: null, gid: null, versions: [], picked: false, ok: false };
   }
@@ -268,7 +357,7 @@ function buildColumns(text, layout) {
 function makeGlyphBox(ch, idx, cfg, opts) {
   cfg = cfg || state;
   opts = opts || {};
-  var r = resolveGlyph(ch, idx, cfg.book);
+  var r = resolveGlyph(ch, idx, cfg.book, cfg);
   var rec = r.rec;
   var box = document.createElement('div');
   box.className = 'glyph';
@@ -290,6 +379,8 @@ function makeGlyphBox(ch, idx, cfg, opts) {
   }
 
   box.dataset.gid = r.gid;   // render 拿它统计"这个写法本句用了几次"
+  box.dataset.ch = ch;       // 「本句用字清单」要报出这一格是哪个字、第几次出现
+  box.dataset.idx = idx || 0;
 
   var src = imgOfGid(r.gid);
   var img = document.createElement('img');
@@ -313,17 +404,20 @@ function makeGlyphBox(ch, idx, cfg, opts) {
     (rec.holder ? rec.holder + '\n' : '') +
     '核对状态：' + (rec.verified || '未核对') + (rec.by ? '　核对人：' + rec.by : '');
 
-  if (rec.nature !== '原碑拓本') {
+  if (isBorrowed(rec, cfg)) {
     // 借来的字：可见地区分
     box.classList.add('borrowed');
     var dot = document.createElement('span');
     dot.className = 'dot';
     box.appendChild(dot);
+    var fromName = (window.DATA.books[rec.book] || {}).name || rec.book;
     info =
-      '「' + shown + '」这个字，库里没有原帖的写法。\n' +
-      '当前用的是：' + rec.nature + '（' + rec.edition + '）\n' +
-      '来源：' + rec.holder + '\n' +
-      '核对状态：' + rec.verified + (rec.by ? '　核对人：' + rec.by : '');
+      '「' + shown + '」这个字，' + (cfgName(cfg)) + '里没有。\n' +
+      '当前用的是从《' + fromName + '》借来的写法。\n' +
+      (rec.src_page ? '出处：' + rec.src_page + '\n' : '') +
+      (rec.holder ? '来源：' + rec.holder + '\n' : '') +
+      '核对状态：' + (rec.verified || '未核对') + (rec.by ? '　核对人：' + rec.by : '') + '\n' +
+      '\n落款处会写明这一笔是从哪块碑借的。';
   }
 
   // 多版本角标：黄=没挑（自动避复给的），黄带晕=挑了没拍板，绿=拍板了
@@ -605,6 +699,8 @@ function renderInto(strip, cfg, opts) {
   // 这里画的是"当前"位置；落款更新后纸宽会变，所以外面还要再补画一次。
   drawDecor(paper, strip, cfg);
 
+  // 最近一次渲染里借了几个字 —— 面板那句提示要读它
+  lastBorrowed = borrowed;
   return {
     text: text, borrowed: borrowed, missing: missing,
     multi: multi, dup: dupCount, usage: use
@@ -723,21 +819,31 @@ function renderPreview() {
 /* ---------- 版本选择区 ---------- */
 
 function renderVersions(ch, idx) {
-  var r = resolveGlyph(ch, idx);
+  // ⚠️ 版本面板跟着**主区域**（=已应用的那套）走，不跟草稿
+  var cfg = state;
+  var r = resolveGlyph(ch, idx, cfg.book, cfg);
   if (r.versions.length < 2) return;
 
   var shown = mapChar(ch);
+  var nborrowed = 0;
+  r.versions.forEach(function (gid) {
+    var g = REC[gid];
+    if (g && g.book !== cfg.book) nborrowed++;
+  });
   el('vTitle').textContent =
-    '「' + shown + '」（本句第 ' + ((idx || 0) + 1) + ' 个）在碑里有 ' +
-    r.versions.length + ' 种写法，当前用第 ' + (r.versions.indexOf(r.gid) + 1) + ' 种';
+    '「' + shown + '」（本句第 ' + ((idx || 0) + 1) + ' 个）有 ' +
+    r.versions.length + ' 种写法，当前用第 ' + (r.versions.indexOf(r.gid) + 1) + ' 种' +
+    (nborrowed ? '（其中 ' + nborrowed + ' 种借自他碑）' : '');
 
   var grid = el('vGrid');
   grid.innerHTML = '';
 
   r.versions.forEach(function (gid, i) {
     var g = REC[gid];
+    var fromOther = g && g.book && g.book !== cfg.book;
     var item = document.createElement('div');
-    item.className = 'vitem' + (gid === r.gid ? ' on' : '');
+    // 借来的写法：虚线框 + 标明出自哪块碑，别让人以为是本碑自己的字
+    item.className = 'vitem' + (gid === r.gid ? ' on' : '') + (fromOther ? ' vborrow' : '');
     item.dataset.gid = gid;
 
     var src = imgOfGid(gid);
@@ -759,6 +865,13 @@ function renderVersions(ch, idx) {
     src.className = 'vsrc';
     src.textContent = g && g.src_page ? g.src_page.replace('碑文', '') : '出处待补';
     item.appendChild(src);
+
+    if (fromOther) {
+      var from = document.createElement('span');
+      from.className = 'vbfrom';
+      from.textContent = '借自《' + (((window.DATA.books || {})[g.book] || {}).name || g.book) + '》';
+      item.appendChild(from);
+    }
 
     // 避复提示：除了当前这个字，本句还有几处用了同一个写法
     var others = (usage[gid] || []).filter(function (u) {
@@ -994,7 +1107,8 @@ function exportPNG() {
     ctx.fillRect(0, 0, W, H);
 
     // 逐段逐字画。竖排时第 0 段在最右（对联右为上联），横排时第 0 段在最上
-    var credits = [];
+    var credits = [];      // 缺字的说明（逐条）
+    var borrowLog = [];    // 借来的字，最后按碑汇总成一行——逐字列会把落款撑得很长
     /* ⚠️ 下面这两类**标记**不许在这里画，要留到反色之后补（见 paintDecor）：
        原碑模式是整幅反色，朱砂被反过去就是青蓝——界行、版框、借字框早就栽过，
        朱笔和缺字框是同一类（它们着色是"标记"，不是字形本身），
@@ -1031,9 +1145,12 @@ function exportPNG() {
           ctx.drawImage(im, x, cy, SIZE, SIZE);
         }
 
-        // 借字的朱砂虚线框统一在 paintDecor 里画（标记不能被反色，见那里）
-        if (rec && rec.nature !== '原碑拓本') {
-          credits.push('「' + ch + '」借自' + rec.nature + '，' + rec.holder);
+        /* 借字的朱砂虚线框统一在 paintDecor 里画（标记不能被反色，见那里）。
+           ⚠️ 判定必须走 isBorrowed()——别再直接拿 nature 去比对「原碑拓本」：
+           两块碑的 nature 都是「原碑拓本」，那句老判定永远不成立，
+           10-27 就是漏在这一行：框画了、落款的借用说明一个字都没出。 */
+        if (isBorrowed(rec, state)) {
+          borrowLog.push({ ch: ch, book: rec.book, holder: rec.holder });
         }
       }
     });
@@ -1144,22 +1261,13 @@ function exportPNG() {
         ctx.restore();
       }
 
-      // 借来的字：朱砂虚线框标出来（屏幕上也是这个规矩）
-      ctx.save();
-      ctx.strokeStyle = '#9E3D32';
-      ctx.setLineDash([7, 5]);
-      cols.forEach(function (part, ci) {
-        for (var j = 0; j < part.length; j++) {
-          var cell = grid[ci][j];
-          var rec = resolveGlyph(cell.ch, cell.idx).rec;
-          if (rec && rec.nature !== '原碑拓本') {
-            var q = cellXY(ci, j);
-            ctx.strokeRect(q.x + 4, q.y + 4, SIZE - 8, SIZE - 8);
-          }
-        }
-      });
-      ctx.setLineDash([]);
-      ctx.restore();
+      /* ⚠️ 借字**不在这里画红框了**（2026-10-27 白星拍板）。
+         这个东西是拿来生成集字碑帖的，成品是要展示出来的——
+         作品上套一圈突兀的红框，导出的东西就没地方用了，功能等于白做。
+         诚实性不靠红框，靠落款那句「其中 N 字借自《颜勤礼碑》」：
+         出处写明白了，软件的责任就尽到了。
+         编辑时在屏幕上照样有红框（makeGlyphBox 里加 .borrowed）——那是给人看清用的，
+         不是给成品用的。**编辑时明示，成品时干净**。 */
 
       // 版框：**只框字区**，落款和印章在框外下方。
       // 文武 = 一粗一细双边：外面粗、里面细，刻本册页最常见的版框。
@@ -1207,15 +1315,19 @@ function exportPNG() {
         used += drawWrapped(ctx, lines[li], PADX, ly + used * LH, maxW, LH);
       }
       ctx.fillStyle = '#8A8474';
-      if (credits.length === 0) {
+      if (credits.length === 0 && borrowLog.length === 0) {
         used += drawWrapped(ctx, '全部字形来自原帖', PADX, ly + used * LH, maxW, LH);
       } else {
         for (var k = 0; k < credits.length && k < 2; k++) {
           used += drawWrapped(ctx, credits[k], PADX, ly + used * LH, maxW, LH);
         }
         if (credits.length > 2) {
-          used += drawWrapped(ctx, '…另有 ' + (credits.length - 2) + ' 条借用说明',
+          used += drawWrapped(ctx, '…另有 ' + (credits.length - 2) + ' 字留空未补',
             PADX, ly + used * LH, maxW, LH);
+        }
+        // 借字**按碑汇总成一行**：既说清了出处，又不把落款撑成一篇小作文
+        if (borrowLog.length) {
+          used += drawWrapped(ctx, borrowSummary(borrowLog), PADX, ly + used * LH, maxW, LH);
         }
       }
     }
@@ -1510,7 +1622,9 @@ function cloneCfg(c) {
     frame: c.frame || '文武',
     gap: num(c.gap, 8), rowGap: num(c.rowGap, 34), pad: num(c.pad, 34),
     mask: c.mask || '关',
-    brushOn: !!c.brushOn
+    brushOn: !!c.brushOn,
+    borrow: c.borrow || 'off',
+    borrowBooks: Array.isArray(c.borrowBooks) ? c.borrowBooks.slice() : null
   };
 }
 
@@ -1530,7 +1644,9 @@ function cfgEqual(a, b) {
     num(a.rowGap, 34) === num(b.rowGap, 34) &&
     num(a.pad, 34) === num(b.pad, 34) &&
     (a.mask || '关') === (b.mask || '关') &&
-    !!a.brushOn === !!b.brushOn;
+    !!a.brushOn === !!b.brushOn &&
+    (a.borrow || 'off') === (b.borrow || 'off') &&
+    JSON.stringify(a.borrowBooks || null) === JSON.stringify(b.borrowBooks || null);
 }
 
 function isDirty() {
@@ -1634,7 +1750,142 @@ function syncPanel() {
     bt.textContent = n ? '已标 ' + n + ' 个字' : '还没标任何字';
     bt.classList.toggle('on', n > 0);
   }
+
+  // 借字三档
+  if (el('segBorrow')) {
+    Array.prototype.forEach.call(el('segBorrow').querySelectorAll('.segbtn'), function (b) {
+      b.classList.toggle('on', b.dataset.v === (cfg.borrow || 'off'));
+    });
+  }
+  renderBorrowBooks(cfg);
+  syncBorrowTip(cfg);
   syncSpacePanel(cfg);
+}
+
+/* 「可以从这些碑借」的勾选列表。
+   只列**已经入库**、且**不是当前底本**的碑——和碑本按钮一样是数据长出来的，
+   将来加了第三块碑不用改一行。 */
+function renderBorrowBooks(cfg) {
+  var box = el('borrowBooks');
+  if (!box) return;
+  cfg = cfg || draft || state;
+  var has = booksWithGlyphs();
+  var all = Object.keys(window.DATA.books || {}).filter(function (k) {
+    return k !== cfg.book && has[k];
+  });
+  box.innerHTML = '';
+  if (!all.length) {
+    var none = document.createElement('span');
+    none.className = 'blabel';
+    none.textContent = '目前没有别的碑入库，没什么可借';
+    box.appendChild(none);
+    return;
+  }
+  all.forEach(function (k) {
+    var b = window.DATA.books[k];
+    // 没设过 borrowBooks = 全都可借，所以默认勾着
+    var on = !Array.isArray(cfg.borrowBooks) || cfg.borrowBooks.indexOf(k) >= 0;
+    var lab = document.createElement('label');
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.checked = on;
+    cb.dataset.bk = k;
+    cb.addEventListener('change', function () {
+      if (!draft) return;
+      var cur = Array.isArray(draft.borrowBooks) ? draft.borrowBooks.slice() : all.slice();
+      var i = cur.indexOf(k);
+      if (cb.checked) { if (i < 0) cur.push(k); }
+      else if (i >= 0) cur.splice(i, 1);
+      draft.borrowBooks = cur;
+      syncPanel();
+      renderPreview();
+      markDirty();
+    });
+    lab.appendChild(cb);
+    lab.appendChild(document.createTextNode(b.name || k));
+    box.appendChild(lab);
+  });
+}
+
+// 面板里那句活提示：先说清这一档**打算怎么做**，再补一句实际借了几个。
+// （实际数字读的是主区域=已应用的状态；预览里借了几个要等【应用改动】才落到这句话上）
+function syncBorrowTip(cfg) {
+  var t = el('borrowTip');
+  if (!t) return;
+  var mode = cfg.borrow || 'off';
+  var said = '还没开始借字';
+  if (mode === 'fill') said = '碑里没有的字，会自动借来补上';
+  else if (mode === 'mix') said = '本碑有字的，也能换成别碑的写法';
+  if (mode !== 'off' && lastBorrowed > 0) {
+    said += '（这一句已借 ' + lastBorrowed + ' 个）';
+    t.classList.add('on');
+  } else {
+    t.classList.remove('on');
+  }
+  t.textContent = said;
+
+  // 清单开着的话跟着刷新（换了句子、换了档都要跟上）
+  var bl = el('borrowList');
+  if (bl && !bl.hidden) renderBorrowList(cfg);
+}
+
+/* 「本句用字清单」——点借字窗格里那句活提示展开。
+   每个字一行，写清它是本碑的、从哪块碑借的（含碑文第几字）、还是缺着没补。
+   朱笔顺手列出来：染红在纸上肉眼就看得见，单给它做入口没必要；
+   但这份清单既然要做，多一列标签的成本是零。 */
+function renderBorrowList(cfg) {
+  var box = el('borrowList');
+  var strip = el('strip');
+  if (!box || !strip) return;
+  cfg = cfg || state;
+  box.innerHTML = '';
+  var boxes = strip.querySelectorAll('.glyph');
+
+  Array.prototype.forEach.call(boxes, function (b) {
+    var ch = b.dataset.ch;
+    if (!ch) return;
+    var idx = Number(b.dataset.idx || 0);
+    var g = b.dataset.gid ? REC[b.dataset.gid] : null;
+    var cls = ['brow'], from;
+
+    if (b.classList.contains('missing')) {
+      cls.push('is-miss');
+      from = '缺字，如实留空';
+    } else if (g && isBorrowed(g, cfg)) {
+      cls.push('is-borrow');
+      var nm = ((window.DATA.books || {})[g.book] || {}).name || g.book;
+      from = '借自《' + nm + '》' + (g.src_page ? ' · ' + g.src_page : '');
+    } else {
+      from = cfgName(cfg) + (g && g.src_page ? ' · ' + g.src_page : '');
+    }
+
+    var row = document.createElement('div');
+    row.className = cls.join(' ');
+    var c1 = document.createElement('span');
+    c1.className = 'bch';
+    c1.textContent = ch;
+    var c2 = document.createElement('span');
+    c2.className = 'bfrom';
+    c2.textContent = from;
+    row.appendChild(c1);
+    row.appendChild(c2);
+
+    if (isBrushed(ch, idx, cfg.book)) {
+      row.classList.add('is-brush');
+      var tag = document.createElement('span');
+      tag.className = 'btag';
+      tag.textContent = '朱笔';
+      row.appendChild(tag);
+    }
+    box.appendChild(row);
+  });
+
+  if (!box.children.length) {
+    var empty = document.createElement('div');
+    empty.className = 'brow';
+    empty.textContent = '这一句还没有字';
+    box.appendChild(empty);
+  }
 }
 
 /* 间距的三档预设。数值按"字格 76px"这个尺度定的——
@@ -1860,6 +2111,23 @@ function init() {
     var b = e.target.closest ? e.target.closest('.segbtn') : null;
     if (!b || !draft) return;
     draft.brushOn = (b.dataset.v === 'on');
+    syncPanel();
+    renderPreview();
+    markDirty();
+  });
+
+  // 点那句活提示 → 展开「本句用字清单」
+  el('borrowTip').addEventListener('click', function () {
+    var b = el('borrowList');
+    b.hidden = !b.hidden;
+    if (!b.hidden) renderBorrowList(state);
+  });
+
+  // 借字三档：不借（默认，红线）/ 补缺 / 混搭
+  el('segBorrow').addEventListener('click', function (e) {
+    var b = e.target.closest ? e.target.closest('.segbtn') : null;
+    if (!b || !draft) return;
+    draft.borrow = b.dataset.v;
     syncPanel();
     renderPreview();
     markDirty();
