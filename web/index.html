@@ -15,11 +15,17 @@
 
 <main data-page-node-id="W1yF9pCwH8JaneRxsjH8tr">
   <section class="panel" data-page-node-id="Lt58buv0THlxbLHks04Sgv">
-    <div class="row" data-page-node-id="KdD2XFUH9l5Tf00s6TeVOu">
-      <input id="input" type="text" value="上善若水 道法自然" placeholder="输入一句话；对联请用空格分隔上下联" data-page-node-id="TnnkihbDirbengheL3lZ30">
+    <div class="row" id="inputRow" data-page-node-id="KdD2XFUH9l5Tf00s6TeVOu">
+      <!-- ⚠️ 是 textarea 不是 input：单行 input 根本输不进换行符，
+           而「换行」早就是合法的分段符（切分时用的是 \s+，含 \n）。
+           这里换掉而不是"再加一个多行框"——两份值要互相同步，迟早出 bug。 -->
+      <textarea id="input" rows="1" placeholder="输入一句话；对联用空格或换行分隔上下联" data-page-node-id="TnnkihbDirbengheL3lZ30">上善若水 道法自然</textarea>
+      <button class="ghost" id="btnInputZoom"
+        data-tip="把输入框展开高一点：长句子能一口气看全，也能滚着改。&#10;再点一次还原。&#10;换行和空格一样都是分段——分几段就排几列。">放大</button>
       <button class="pick" id="btnAdjust"
         data-tip="打开右侧的调整面板：底本、排版、字色都在这里。&#10;面板从右边滑出来，左边的目录可以切换分组。">集字调整</button>
     </div>
+    <p class="leninfo" id="lenInfo" aria-live="polite"></p>
   </section>
 
   <section class="stage" data-page-node-id="hpOHIgTHkry0eaatCOYhM5">

@@ -127,20 +127,42 @@ function el(id) {
 
 /* ---------- 字形查找 ---------- */
 
-// 简体 → 碑上的繁体/异体（画→畫、载→載…），没有映射就原样返回
-// 简体 → 碑上的写法。
+// 某个写法在**指定那一块碑**里有没有。
+// by_char 是全库索引（不分碑），所以挑候选时必须自己拿 book 过一遍，
+// 否则「发→發/髮」这种一对多的字，会挑到只在**别的**碑里有的那一个，
+// 然后本碑一查又变缺字。
+function hasInBook(ch, book) {
+  var ids = (window.DATA.by_char || {})[ch] || [];
+  for (var i = 0; i < ids.length; i++) {
+    var g = REC[ids[i]];
+    if (g && (!book || g.book === book)) return true;
+  }
+  return false;
+}
+
+// 简体 → 碑上的写法（画→畫、书→書、载→載…），没有映射就原样返回。
 // 映射表给的是一个候选列表（简→繁常常不止一种），取**库里真有的那一个**；
 // 一个都没有才退回原字，让缺字如实留空。
 // ⚠️ 不能只取 vs[0]：有些字库里存的恰恰就是简体本身（比如「静」，表里第一候选是「靜」，
 //    而碑上是「静」），只取第一个会把明明有的字判成缺字（10-26 在「宁静致远」上踩到）。
-function mapChar(ch) {
+// ⚠️ 同理，**先按当前这块碑挑，再退回全库**：一张表是全库的，
+//    本碑有的写法优先——不然会挑到别的碑的写法，本碑照样缺字
+//    （10-28 白星在颜勤礼碑输入「书」查不出，就是表里压根没这个字；
+//     表已经换成从库里反推生成的全量表，这一层是给一对多的字兜底）。
+function mapChar(ch, book) {
   var idx = window.DATA.by_char || {};
-  if (idx[ch]) return ch;                       // 库里本来就有这个写法，直接用
   var vs = (window.DATA.variants || {})[ch] || [];
-  for (var i = 0; i < vs.length; i++) {
-    if (idx[vs[i]]) return vs[i];               // 表里挑一个库里真有的
+  if (book) {
+    if (hasInBook(ch, book)) return ch;                  // 本碑本来就有这个写法
+    for (var i = 0; i < vs.length; i++) {
+      if (hasInBook(vs[i], book)) return vs[i];           // 表里挑一个本碑真有的
+    }
   }
-  return vs.length ? vs[0] : ch;                // 都没有：照旧给第一候选（缺字如实留空）
+  if (idx[ch]) return ch;                                 // 本碑没有，全库有（借字档用得上）
+  for (var j = 0; j < vs.length; j++) {
+    if (idx[vs[j]]) return vs[j];
+  }
+  return vs.length ? vs[0] : ch;                          // 都没有：照旧给第一候选（缺字如实留空）
 }
 
 function buildRecIndex() {
@@ -178,12 +200,12 @@ function resetPicks() {
 // 记忆的键 = 碑 + 字 + 本句第几次出现
 // 带序号是为了能逐字避复：同一句里第 1 个「之」和第 2 个「之」可以各选一版
 function pickKey(ch, idx, book) {
-  return (book || state.book) + ':' + mapChar(ch) + '#' + (idx || 0);
+  return (book || state.book) + ':' + mapChar(ch, book || state.book) + '#' + (idx || 0);
 }
 
 // 【内核】某个字在**指定那一块碑**里的全部版本。别的碑一概不看。
 function versionsInBook(ch, book) {
-  var ids = (window.DATA.by_char || {})[mapChar(ch)] || [];
+  var ids = (window.DATA.by_char || {})[mapChar(ch, book)] || [];
   var out = [];
   for (var i = 0; i < ids.length; i++) {
     var g = REC[ids[i]];
@@ -361,7 +383,7 @@ function makeGlyphBox(ch, idx, cfg, opts) {
   var rec = r.rec;
   var box = document.createElement('div');
   box.className = 'glyph';
-  var shown = mapChar(ch);
+  var shown = mapChar(ch, cfg.book);
 
   if (!rec || !imgOfGid(r.gid)) {
     // 缺字：留空 + 标记，绝不渲染假字
@@ -650,7 +672,7 @@ function renderInto(strip, cfg, opts) {
     col.className = 'col';
     for (var i = 0; i < part.length; i++) {
       var ch = part[i];
-      var k = mapChar(ch);
+      var k = mapChar(ch, cfg.book);
       var idx = seen[k] || 0;
       seen[k] = idx + 1;
       order++;
@@ -824,7 +846,7 @@ function renderVersions(ch, idx) {
   var r = resolveGlyph(ch, idx, cfg.book, cfg);
   if (r.versions.length < 2) return;
 
-  var shown = mapChar(ch);
+  var shown = mapChar(ch, cfg.book);
   var nborrowed = 0;
   r.versions.forEach(function (gid) {
     var g = REC[gid];
@@ -945,14 +967,78 @@ function bindTooltip() {
     if (!t) return;
     var r = t.getBoundingClientRect();
     tip.textContent = t.dataset.tip;
-    tip.style.left = Math.max(8, Math.min(r.right + 12, window.innerWidth - 300)) + 'px';
-    tip.style.top = (window.scrollY + r.bottom + 8) + 'px';
+    /* 默认放在元素**下方**，下方放不下就翻到**上方**。
+       抽屉最底下那两个按钮（应用改动 / 放弃）就是贴着窗口底边的，
+       说明要是只会往下放，就掉到页面外面去了——白星 2026-10-28 组会报的。
+       ⚠️ 要先 show 再量：display:none 的东西量出来高宽都是 0。 */
     tip.classList.add('show');
+    var th = tip.offsetHeight, tw = tip.offsetWidth;
+    var top = r.bottom + 8;
+    if (top + th > window.innerHeight - 8) top = r.top - th - 8;   // 翻到按钮上方
+    if (top < 8) top = Math.min(window.innerHeight - th - 8, r.bottom + 8);  // 上下都挤，退回下方贴底
+    tip.style.left = Math.max(8, Math.min(r.right + 12, window.innerWidth - tw - 8)) + 'px';
+    tip.style.top = (window.scrollY + Math.max(8, top)) + 'px';
   });
 
   document.addEventListener('mouseout', function (e) {
     if (e.target.closest && e.target.closest('[data-tip]')) tip.classList.remove('show');
   });
+}
+
+/* ---------- 输入区：多行 / 放大 / 字数 ----------
+   输入框是 textarea（单行 input 吃不下换行符，而换行本来就是合法的分段符），
+   所以三件事跟着来了：随内容长高、【放大】就地展开、字数提醒。 */
+
+var renderTimer = null;   // 实时渲染的防抖计时器
+
+/* 实时渲染加防抖：每敲一个字就全量重画两遍（主区 + 预览窗格），
+   短句子没感觉，长句子会一下一下地卡。敲完 180ms 再画，手感反而更顺。
+   ⚠️ 防抖就得有个 flush：自检是同步的，等不了 180ms，
+   所以把"立刻把挂起的那次画掉"单独开个口子给它。 */
+function scheduleRender() {
+  if (renderTimer) clearTimeout(renderTimer);
+  renderTimer = setTimeout(flushPendingRender, 180);
+}
+
+function flushPendingRender() {
+  if (renderTimer) { clearTimeout(renderTimer); renderTimer = null; }
+  render();
+  renderPreview();   // 预览也跟着换内容
+}
+
+// 竖排排成一列时，导出画布的高 ≈ 177 × 字数；浏览器 canvas 单边上限 32767，
+// 倒推过来大致是这个数。**真正的判定在 exportPng 里按实际尺寸算**，
+// 这里只是提前打个招呼，别等用户点了导出才撞墙。
+var LEN_WARN = 150;
+
+function autoGrowInput() {
+  var t = el('input');
+  if (!t) return;
+  if (el('inputRow').classList.contains('big')) return;   // 放大态高度固定，不跟着长
+  t.style.height = 'auto';
+  // 最多 5 行，再多就滚着看（下限 46px 保底：量不到高度时也不会塌成一条缝）
+  t.style.height = Math.max(46, Math.min(t.scrollHeight, 150)) + 'px';
+}
+
+function updateLenInfo() {
+  var box = el('lenInfo');
+  if (!box) return;
+  var n = (el('input').value || '').replace(/\s+/g, '').length;
+  if (!n) { box.textContent = ''; box.classList.remove('warn'); return; }
+  var tail = '';
+  if (n > LEN_WARN) {
+    tail = '（超过 ' + LEN_WARN + ' 字，导出会超出浏览器画布上限——请分段或减少字数）';
+  } else if (n > LEN_WARN * 0.8) {
+    tail = '（再长就快到导出上限了）';
+  }
+  box.textContent = '共 ' + n + ' 字' + tail;
+  box.classList.toggle('warn', n > LEN_WARN * 0.8);
+}
+
+// 输入框变了（打字、从历史里恢复）都要走一遍：高度和字数提示是绑在一起的
+function refreshInput() {
+  autoGrowInput();
+  updateLenInfo();
 }
 
 /* ---------- 导出 PNG ---------- */
@@ -1037,6 +1123,7 @@ function exportPNG() {
   // 现在框只框字区、落款在框外下方，这里要留够"往下退 + 两行字 + 印章"的空间。
   var FOOT = 170;
   var LH = 19;      // 落款行高
+  var SEAL_S = 40;  // 印章边长（以前是写死的 40，改尺寸得改两处）
 
   var maxLen = 0;
   cols.forEach(function (c) { if (c.length > maxLen) maxLen = c.length; });
@@ -1052,6 +1139,19 @@ function exportPNG() {
 
   var W = PADX * 2 + nX * SIZE + (nX - 1) * gapX;
   var H = PADY * 2 + nY * SIZE + (nY - 1) * gapY + FOOT;
+
+  /* 超长句子的兜底：浏览器对 canvas 有硬上限（单边 32767 px 是各家最保守的那档，
+     面积也有约 2.68 亿像素的天花板）。超过以后画布是空的，而 toDataURL **不会报错**——
+     用户只会拿到一张白图，以为软件坏了（2026-10-28 白星提"超长文本"时顺手补的）。
+     所以宁可拦下来，把话说明白：超了多少、怎么办。 */
+  var MAX_SIDE = 32767, MAX_AREA = 268435456;
+  if (W > MAX_SIDE || H > MAX_SIDE || W * H > MAX_AREA) {
+    alert('这句话共 ' + text.replace(/\s+/g, '').length + ' 字，'
+      + '导出需要的画布是 ' + W + ' × ' + H + ' 像素，超过了浏览器的上限。\n\n'
+      + '少写几个字，或者用空格 / 换行分成几段——'
+      + '分几段就排成几列，画布就矮下来了。');
+    return;
+  }
 
   /* 格子的位置一律从这一个函数出：ix 越大越靠左（从右到左），iy 越大越靠下。
      ⚠️ 字区、界行、版框的边界都必须由它推导，**不要另外手算**——
@@ -1073,7 +1173,7 @@ function exportPNG() {
   var seen = {};
   var grid = cols.map(function (part) {
     return part.split('').map(function (ch) {
-      var k = mapChar(ch);
+      var k = mapChar(ch, state.book);
       var idx = seen[k] || 0;
       seen[k] = idx + 1;
       return { ch: ch, idx: idx };
@@ -1291,12 +1391,13 @@ function exportPNG() {
     }
 
     function paintSeal() {
-      // 印章盖在落款下方偏右（也可以在面板里关掉）。
+      // 印章盖在落款**下方**偏右（也可以在面板里关掉）。
       // 它跟着落款一起在框外——版框框的是正文，钤印本来就该落在框外的纸面上。
-      if (state.seal) {
-        var sy = Math.min(H - 60, ly + used * LH + 12);
-        drawSeal(ctx, W - PADX - 40, sy, 40);
-      }
+      /* ⚠️ 以前这里把印章往回夹（贴着画布底边封顶）：落款一长，它就被夹回
+         最后几行落款上——和屏幕上那个毛病是同一个根因
+         （白星 2026-10-28 小组组会报的「印章遮挡落款」）。
+         现在纸不够高就直接把画布接长（见下面的"接长"），这里不用再夹。 */
+      if (state.seal) drawSeal(ctx, W - PADX - SEAL_S, ly + used * LH + 12, SEAL_S);
     }
 
     // 落款区：在版框之外的下方，所以不受框挤压，想往下退多少都行。
@@ -1330,6 +1431,24 @@ function exportPNG() {
           used += drawWrapped(ctx, borrowSummary(borrowLog), PADX, ly + used * LH, maxW, LH);
         }
       }
+    }
+
+    /* 落款长的时候（缺字多、或挂着「其中 N 字借自《某碑》」那行说明），
+       纸原来预留的高度就不够再放一枚印章了。这里把画布**接长**一截——
+       宁可纸高一点，也不让印章压到落款的字上（印章遮挡落款，2026-10-28 组会报的）。
+       ⚠️ 必须放在反色**之前**：反色是按 W×H 铺满的，接完再反，新长出来的那截才会跟着反。 */
+    var needH = ly + used * LH + (state.seal ? 12 + SEAL_S : 0) + 14;
+    if (needH > H) {
+      var c2 = document.createElement('canvas');
+      c2.width = W;
+      c2.height = needH;
+      var x2 = c2.getContext('2d');
+      x2.fillStyle = '#FBF9F3';
+      x2.fillRect(0, 0, W, needH);
+      x2.drawImage(c, 0, 0);
+      c = c2;      // 后面 toDataURL 取的是这个新画布
+      ctx = x2;    // paintDecor / paintSeal 里的闭包跟着指向新上下文
+      H = needH;
     }
 
     // 原图（拓片观感）：碑帖拓片本来就是黑底白字，整幅翻转就是这个观感
@@ -1438,6 +1557,7 @@ function renderHistory() {
       syncPanel();
       closeVersions();
       resetPicks();   // 从历史里换了一句话，等于换句子
+      refreshInput();   // 恢复的句子可能很长，输入框高度和字数提示都要跟上
       render();
       toggleHistory(false);
     });
@@ -2052,11 +2172,26 @@ function init() {
   applyInkToPage(state.ink);
   watchDecor();   // 纸一变形就重画版框/界行（见函数上的说明）
 
+  refreshInput();
+
   el('input').addEventListener('input', function () {
     closeVersions();   // 改了内容，版本区里的字可能已经不在句里了
     resetPicks();      // 换了句子：上一句挑的写法不作数，回到自动避复
-    render();
-    renderPreview();   // 预览也跟着换内容
+    refreshInput();
+    scheduleRender();
+  });
+
+  // 【放大】：就地展开成高编辑区，可滚动；再点一次还原
+  el('btnInputZoom').addEventListener('click', function () {
+    var row = el('inputRow');
+    var big = row.classList.toggle('big');
+    el('btnInputZoom').textContent = big ? '还原' : '放大';
+    if (big) {
+      el('input').style.height = '';   // 交回 CSS 那档固定高度（240px）
+    } else {
+      autoGrowInput();                 // 还原后又回到"跟着内容长高"
+    }
+    el('input').focus();
   });
 
   el('btnAdjust').addEventListener('click', function () { toggleDrawer(); });

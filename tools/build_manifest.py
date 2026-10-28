@@ -24,6 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / "data" / "metadata" / "glyphs.json"
 BOOKS = ROOT / "data" / "metadata" / "books.json"
 GOALS = ROOT / "data" / "goals.json"
+VARIANTS = ROOT / "data" / "metadata" / "简繁对照.json"
 IMGDIR = ROOT / "web" / "glyphs"
 DST = ROOT / "web" / "data.js"
 
@@ -51,11 +52,26 @@ def main():
     glyphs = data.get("glyphs", [])
     recs_by_id = {g.get("id"): g for g in glyphs if g.get("id")}
 
-    # 简体 → 繁体异体映射（让前端输入简体也能找到碑里的繁体字）
-    # goals.json 里的格式就是「简体: [繁体…]」，方向正好，直接透传
+    # 简体 → 碑上写法（繁体/异体）的反查表。两个来源，合并：
+    #   ① tools/build_variants.py 从库里反推出来的（覆盖全库，1193 个字全都算过）
+    #   ② data/goals.json 里手写的（补异体，如 远→遠/逺）
+    # ⚠️ 以前只有 ②，而那张手写表只写了演示例句那 12 个字——
+    #    于是输入「书」查不出（表里没有），输入「書」却可以（库里本来就有）。
+    #    2026-10-28 白星在颜勤礼碑上试出来的，不是某一块碑的毛病，是全库的。
+    variants = {}
+    if VARIANTS.exists():
+        variants = json.loads(VARIANTS.read_text(encoding="utf-8")).get("map", {})
+    else:
+        print("[提示] 没有 data/metadata/简繁对照.json，")
+        print("       简体字会查不到碑上的繁体字。先跑：python tools/build_variants.py")
     if GOALS.exists():
         goals = json.loads(GOALS.read_text(encoding="utf-8"))
-        data["variants"] = goals.get("variants", {})
+        for k, vs in (goals.get("variants") or {}).items():
+            bucket = variants.setdefault(k, [])
+            for v in vs:
+                if v not in bucket:
+                    bucket.append(v)
+    data["variants"] = variants
 
     # 【2026-10-21 改】多版本切换：同一个字可能有好几种写法（如「之」有 22 版），
     # 所以每个版本都要嵌图，不能只嵌一张。

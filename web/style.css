@@ -92,6 +92,9 @@ body.previewing main { padding-left: var(--pw); }
 
 .row { display: flex; gap: 10px; align-items: center; }
 
+/* 输入框是 textarea（为了能吃下换行符），这里把它打扮得和原来那个单行框一样。
+   ⚠️ resize:none：右下角那个拖拽把手会让人不小心把框拽变形，
+   要放大就点旁边的【放大】按钮——只有一个入口，就不会有两套状态。 */
 #input {
   flex: 1;
   padding: 12px 14px;
@@ -101,7 +104,31 @@ body.previewing main { padding-left: var(--pw); }
   background: #FBF9F3;
   border: 1px solid #D8D2C2;
   border-radius: 6px;
+  line-height: 1.6;
+  resize: none;
+  overflow-y: auto;
+  /* 常态跟着内容长高，最多 5 行（更高的部分滚着看，或者点【放大】） */
+  min-height: 46px;
+  max-height: 150px;
 }
+
+/* 【放大】：就地展开成一块高编辑区，可滚动。再点一次还原。
+   不用弹浮层——浮层要处理遮罩、Esc、焦点，多一处状态就多一处 bug，
+   和预览窗格那个【放大】保持同一套交互。 */
+.row.big #input { height: 240px; max-height: 240px; }
+.row.big #btnInputZoom { background: #EDE7D8; }
+/* 展开后按钮贴着顶边，别吊在 240px 高的框子正中间 */
+.row.big { align-items: flex-start; }
+.row.big #btnAdjust, .row.big #btnInputZoom { margin-top: 2px; }
+
+/* 字数提示：平时不显眼，快到上限了才提醒 */
+.leninfo {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #9A948A;
+  min-height: 16px;
+}
+.leninfo.warn { color: #9E3D32; }
 
 /* ⚠️ 纸可能比舞台宽（字一多就会），这时必须能横向滚，不能把左边的字"吃掉"。
    居中用 safe center：放不下时自动退回左对齐——
@@ -161,11 +188,17 @@ body.previewing main { padding-left: var(--pw); }
   white-space: pre-line;
 }
 
-/* 页面印章：盖在纸的右下角 */
+/* 页面印章：跟在落款**下面**、靠右——和导出 PNG 里是同一套位置。
+   ⚠️ 以前是 position:absolute 钉死在纸的右下角，落款一长（缺字多、或挂着
+   「其中 N 字借自《颜勤礼碑》」那行说明）就被印章压住看不见了
+   （白星 2026-10-28 小组组会报的）。
+   现在排在落款**之后的正常流**里：落款往下长，印章就跟着往下走，永远压不到字。
+   右边缘和落款对齐（margin-left:auto），导出图里也是这么定的（W - PADX - 印宽）。
+   position 留着 relative 是为了保住 z-index——印章是后钤的，本来就该压在版框线上。 */
 .seal {
-  position: absolute;
-  right: 16px;
-  bottom: 14px;
+  position: relative;
+  display: block;
+  margin: 12px 0 0 auto;   /* 紧跟落款、靠右 */
   width: 34px;
   height: 34px;
   border-radius: 4px;

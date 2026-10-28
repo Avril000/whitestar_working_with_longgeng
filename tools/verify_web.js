@@ -117,6 +117,7 @@ try {
   check('抽屉初始是收起的', !drawer.classList.contains('open'));
   document.getElementById('input').value = '上善若水 道法自然';
   document.getElementById('input').dispatchEvent(new window.Event('input', { bubbles: true }));
+  window.flushPendingRender();   // 输入渲染有防抖，测试里直接落地
   document.getElementById('btnAdjust').click();
   check('点【集字调整】抽屉滑出', drawer.classList.contains('open'));
   check('样式窗格默认打开', document.querySelector('.dpane[data-key="style"]').classList.contains('on'));
@@ -153,6 +154,7 @@ try {
   // 12. 草稿机制：改设置不立刻作用到主区域，只进预览
   document.getElementById('input').value = '上善若水 道法自然';
   document.getElementById('input').dispatchEvent(new window.Event('input', { bubbles: true }));
+  window.flushPendingRender();   // 输入渲染有防抖，测试里直接落地
   document.querySelector('#segInk .segbtn[data-v="red"]').click();
   check('改了字色，主区域不跟着变（仍是改动前）', !document.getElementById('mainPaper').classList.contains('ink-red'));
   check('预览里已经变成朱砂', document.getElementById('previewPaper').classList.contains('ink-red'));
@@ -329,6 +331,7 @@ try {
   strip.querySelector('.glyph .vdot').click();
   document.getElementById('input').value = '之乎者也';
   document.getElementById('input').dispatchEvent(new window.Event('input', { bubbles: true }));
+  window.flushPendingRender();   // 输入渲染有防抖，测试里直接落地
   check('改输入后版本区自动收起', !vpanel.classList.contains('open'));
 
   // 避复提示：面板里标出每个写法在本句「别处」还用了几处
@@ -633,6 +636,7 @@ try {
   const setInput = (s) => {
     document.getElementById('input').value = s;
     document.getElementById('input').dispatchEvent(new window.Event('input', { bubbles: true }));
+    window.flushPendingRender();   // 输入渲染有防抖，测试里直接落地
     window.render();
   };
   const setBook = (i) => {
@@ -820,6 +824,7 @@ try {
   //     字形图是「透明底 + 单色墨」，颜色事后给——所以三种样式不额外存任何图
   document.getElementById('input').value = '上善若水 道法自然';
   document.getElementById('input').dispatchEvent(new window.Event('input', { bubbles: true }));
+  window.flushPendingRender();   // 输入渲染有防抖，测试里直接落地
 
   const segInk = (v) => document.querySelector('#segInk .segbtn[data-v="' + v + '"]');
   // 现在改设置走草稿：选完必须点【应用改动】，主区域才真的变
@@ -1008,12 +1013,14 @@ try {
      标第 1 个，第 2 个不该跟着变。（键是"碑:字#本句第几次"。） */
   document.getElementById('input').value = '之之';
   document.getElementById('input').dispatchEvent(new window.Event('input', { bubbles: true }));
+  window.flushPendingRender();   // 输入渲染有防抖，测试里直接落地
   /* ⚠️ render() 会把字格整个重建，所以点完之后必须**重新查**一次 DOM——
      拿着点之前那个元素对象去验，验的是已经被换掉的旧格子。 */
   const brushed = () => glyphs().filter(g => g.classList.contains('brushed'));
   const type = (t) => {
     document.getElementById('input').value = t;
     document.getElementById('input').dispatchEvent(new window.Event('input', { bubbles: true }));
+    window.flushPendingRender();   // 输入渲染有防抖，测试里直接落地
   };
 
   if (glyphs().length === 2) {
@@ -1044,6 +1051,7 @@ try {
   type('道法自然');
   document.getElementById('input').value = '道法自然';
   document.getElementById('input').dispatchEvent(new window.Event('input', { bubbles: true }));
+  window.flushPendingRender();   // 输入渲染有防抖，测试里直接落地
   check('换了句子，上一句标的朱笔自动清空（不跟到下一句）',
     before > 0 && brushed().length === 0);
   type('上善若水 道法自然');
@@ -1087,6 +1095,152 @@ check('上色的取法和导出 PNG 共用同一个函数（两边必然一致�
 check('缺字的格子不许标朱笔（没有字可染）',
   /if \(cfg\.brushOn\) \{[\s\S]*?isBrushed/.test(appJs) &&
   /box\.classList\.add\('missing'\);[\s\S]*?return box;/.test(appJs));
+
+/* ---------- 印章不压落款 / 提示框贴底翻身 ----------
+   两条都是 2026-10-28 小组组会当场报的：
+   ① 印章钉死在纸的右下角，落款一长（缺字多、或挂着借字说明）就被压住；
+   ② 抽屉最底下那两个按钮（应用改动 / 放弃），说明文字掉到页面外面去了。
+   立的同样是"以后别再改回去"的护栏，不是"这次修好了"的行为测试。 */
+
+// ① 页面印章：必须排在落款**之后的正常流**里，落款长它就跟着往下走
+const SEAL_AT = css.indexOf('.seal {');
+const sealCss = css.slice(SEAL_AT, css.indexOf('.seal::before', SEAL_AT));
+check('页面印章排在正常流里（不再 absolute 钉死在纸角上）',
+  /position:\s*relative/.test(sealCss) && !/position:\s*absolute/.test(sealCss));
+check('页面印章靠右、和落款同一条右边界（margin-left:auto）',
+  /margin:\s*12px 0 0 auto/.test(sealCss));
+check('印章在 DOM 里排在落款后面（正常流才压得到它下面）',
+  html.indexOf('id="credit"') > 0 && html.indexOf('id="credit"') < html.indexOf('id="seal"'));
+
+// 导出那侧：印章不许再被夹回 H - 60——夹回去正好压在落款最后几行上
+const psSrc = appJs.slice(PS, PS + 800);
+check('导出印章不再夹回画布底部（Math.min(H - 60) 就是压住落款的元凶）',
+  !/Math\.min\(H\s*-\s*60/.test(appJs) && /ly \+ used \* LH \+ 12/.test(psSrc));
+check('落款太长时画布自动接长（宁可纸高，也不压字）',
+  /var needH = ly \+ used \* LH/.test(appJs) && /x2\.drawImage\(c, 0, 0\)/.test(appJs));
+check('接长发生在反色之前（不然新长出来那截反不到，会留一条白边）',
+  appJs.indexOf('var needH =') > 0 &&
+  appJs.indexOf('var needH =') < DIFF && appJs.indexOf('var needH =') < CALL);
+check('印章尺寸只写一处（SEAL_S，以前是写死的 40 改一次要改两处）',
+  /var SEAL_S = 40;/.test(appJs) &&
+  (appJs.match(/drawSeal\(ctx, W - PADX - SEAL_S, ly \+ used \* LH \+ 12, SEAL_S\)/g) || []).length === 1);
+
+// ② 提示框：下方放不下就翻到元素上方
+const BT = appJs.indexOf('function bindTooltip()');
+const btSrc = appJs.slice(BT, BT + 1200);
+check('提示框下方放不下时翻到元素上方（贴窗口底边的按钮不掉出页面）',
+  /r\.top\s*-\s*th\s*-\s*8/.test(btSrc));
+check('提示框横向也不许出界（按实际宽度夹，不再写死 300）',
+  /window\.innerWidth\s*-\s*tw\s*-\s*8/.test(btSrc));
+check('量高宽之前先 show（display:none 量出来高宽都是 0）',
+  btSrc.indexOf("classList.add('show')") > 0 &&
+  btSrc.indexOf("classList.add('show')") < btSrc.indexOf('tip.offsetHeight'));
+
+/* ---------- 简繁反查表 ----------
+   2026-10-28 白星在颜勤礼碑输入「书」查不出任何东西，输入「書」却能查出来。
+   根因不是某一块碑的对照有问题，是**那张表只手写了演示例句那 12 个字**——
+   任何不在这 12 个字里的简体字（书、学、国、龙…）都查不出来。
+   现在表改成从库里反推自动生成（tools/build_variants.py），
+   并且挑候选时**先按当前这块碑挑**（不然一对多的字会挑到只在别碑有的写法）。 */
+
+const VAR_N = Object.keys(window.DATA.variants || {}).length;
+check('反查表不再只有手写那 12 条（全库 1193 个字反推生成）', VAR_N > 100);
+check('反查表是自动生成的文件（不是 goals.json 里那 12 条手写表）',
+  fs.existsSync(path.join(WEB, '../data/metadata/简繁对照.json')));
+
+check('简体「书」在颜勤礼碑映射到「書」', window.eval("mapChar('书','yql')") === '書');
+check('繁体「書」本来就库里有，原样取用', window.eval("mapChar('書','yql')") === '書');
+check('简体「书」在颜勤礼碑真的取得到版本', window.eval("versionsInBook('书','yql').length") > 0);
+check('别的简体字也通了（学→學、国→國）',
+  window.eval("mapChar('学','dbt')") === '學' && window.eval("mapChar('国','dbt')") === '國');
+
+// 端到端：切到颜勤礼碑，输入「书」，不该再是缺字
+const bookWas = window.eval('state.book');
+window.eval("state.book='yql'");
+document.getElementById('input').value = '书';
+window.render();
+const yqlStrip = document.getElementById('strip');
+check('颜勤礼碑输入「书」能出图（就是白星报的那个现象）',
+  yqlStrip.querySelectorAll('img').length === 1 && !yqlStrip.querySelector('.glyph.missing'));
+window.eval("state.book='" + bookWas + "'");
+document.getElementById('input').value = '上善若水 道法自然';
+window.render();
+
+/* 一对多的字（「为」→爲/為，「发」→發/髮）：候选里可能有的只在一块碑里有。
+   挑的时候必须**先看当前这块碑**，不能按表的顺序盲取第一个——
+   取到只在别碑有的那个，本碑照样是缺字。 */
+const savedVar = window.eval("window.DATA.variants['书']");
+window.eval("window.DATA.variants['书'] = ['西','書']");   // 西 只在多宝塔，書 两块碑都有
+check('一对多候选按碑挑：颜勤礼碑跳过只在多宝塔有的「西」',
+  window.eval("mapChar('书','yql')") === '書');
+check('一对多候选按碑挑：多宝塔碑就用「西」',
+  window.eval("mapChar('书','dbt')") === '西');
+window.eval("window.DATA.variants['书'] = " + JSON.stringify(savedVar) + ";");
+check('挑完要还原，别把表改脏了', window.eval("mapChar('书','yql')") === '書');
+
+check('mapChar 带碑参数（一对多的字要按碑挑，只看全库会挑错）',
+  /function mapChar\(ch, book\)/.test(appJs));
+check('versionsInBook 把碑传给 mapChar（内核查版本时也要按碑）',
+  /by_char \|\| \{\}\)\[mapChar\(ch, book\)\]/.test(appJs));
+
+/* ---------- 输入区：多行 / 放大 / 字数 / 超长兜底 ----------
+   2026-10-28 白星提的：有人会输入超长文本。
+   ① 输入框要能放大、能滚动；② Enter 也要能当分段符。
+   ② 其实**不用写代码**——切分用的是 \s+，本来就含 \n，
+      卡点只是单行 input 根本输不进换行符，换成 textarea 就自动通了。 */
+
+const inp = document.getElementById('input');
+check('输入框是 textarea（单行 input 吃不下换行符）',
+  inp && inp.tagName === 'TEXTAREA');
+check('输入框只有一个真源（不许再开一个多行框互相同步）',
+  (html.match(/id="input"/g) || []).length === 1);
+check('textarea 不许手动拖拽改尺寸（要放大就点按钮，只留一个入口）',
+  /#input \{[\s\S]*?resize: none/.test(css));
+
+// 换行 = 空格 = 分段符（对联模式下分几段就排几列）
+window.eval("state.layout='对联'");
+inp.value = '上善若水\n道法自然';
+window.render();
+check('换行和空格一样是分段符（对联模式排成两列）',
+  document.getElementById('strip').querySelectorAll('.col').length === 2);
+window.eval("state.layout='条幅'");
+inp.value = '上善若水 道法自然';
+window.render();
+
+// 【放大】：就地展开，再点还原
+const zoom = document.getElementById('btnInputZoom');
+const row = document.getElementById('inputRow');
+zoom.click();
+check('点【放大】输入框就地展开', row.classList.contains('big'));
+check('放大后按钮变成【还原】', zoom.textContent === '还原');
+zoom.click();
+check('再点一次还原', !row.classList.contains('big') && zoom.textContent === '放大');
+check('放大态是固定高度（CSS 里的 .row.big #input），不再跟着内容长',
+  /\.row\.big #input \{ height: 240px/.test(css));
+
+// 字数提示：到点之前就打招呼，别等点了导出才撞墙
+inp.value = '之'.repeat(30);
+window.refreshInput();
+check('字数提示报出字数', document.getElementById('lenInfo').textContent.includes('共 30 字'));
+inp.value = '之'.repeat(160);
+window.refreshInput();
+const li = document.getElementById('lenInfo');
+check('超过上限：提示 + 标红', li.classList.contains('warn') && li.textContent.includes('超过'));
+inp.value = '上善若水 道法自然';
+window.refreshInput();
+
+// 超长句子的导出兜底：canvas 超限后 toDataURL **不报错**，只会给一张白图
+check('超长句子导出有上限检查（不然画布超限会静默出白图）',
+  /MAX_SIDE/.test(appJs) && /超过了浏览器的上限/.test(appJs));
+check('尺寸检查排在真正建画布之前（算完就查，不画了才发现）',
+  appJs.indexOf('var MAX_SIDE') > 0 &&
+  appJs.indexOf('var MAX_SIDE') < appJs.indexOf("document.createElement('canvas')",
+                                                appJs.indexOf('var MAX_SIDE')));
+
+// 防抖：长句子每敲一个字全量重画两遍会卡
+check('实时渲染有防抖', /setTimeout\(flushPendingRender/.test(appJs));
+check('防抖要有 flush 出口（自检是同步的，等不了那 180ms）',
+  /function flushPendingRender/.test(appJs));
 
 console.log('\n结果：' + pass + ' 通过，' + fail + ' 失败');
 process.exit(fail ? 1 : 0);
